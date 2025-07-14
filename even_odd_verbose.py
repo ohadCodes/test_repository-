@@ -1,14 +1,11 @@
-print("בדיקת מספר זוגי או אי-זוגי")
-print("----------------------------")
+print("Checking whether a number is even or odd!\n")
 
-user_input = input("הכנס מספר לבדיקה: ")
+user_input = input("Please enter a number to check: ")
 number = int(user_input)
 
-print(f"המספר שהוזן הוא: {number}")
+print(f"\nThe number entered is: {number}")
 
 if number % 2 == 0:
-    print("המספר הוא זוגי.")
+    print("The number is even.")
 else:
-    print("המספר הוא אי-זוגי.")
-
-print("תודה שהשתמשת בתוכנית!")
+    print("The number is odd.")
