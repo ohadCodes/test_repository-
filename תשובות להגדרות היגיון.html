@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a1f2e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="תשובות להגדרות היגיון" />
+  <link rel="manifest" href="manifest.json" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <title>תשובות להגדרות היגיון</title>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1f2e;
+      --surface2: #232840;
+      --border: #2e3450;
+      --accent: #4f8ef7;
+      --accent2: #7c5cbf;
+      --text: #e8eaf6;
+      --text-muted: #7b82a8;
+      --success: #43b97f;
+      --danger: #e05c6a;
+      --radius: 14px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Assistant', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px 10px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .app-title {
+      font-family: 'Heebo', sans-serif;
+      font-weight: 900;
+      font-size: 1.4rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stats-badge {
+      font-size: 0.75rem;
+      background: var(--surface2);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    /* SEARCH */
+    .search-wrap {
+      position: relative;
+    }
+    .search-icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+    #searchInput {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 42px 12px 14px;
+      color: var(--text);
+      font-family: 'Assistant', sans-serif;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #searchInput:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+    }
+    #searchInput::placeholder { color: var(--text-muted); }
+    .clear-search {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: none;
+      padding: 4px;
+    }
+
+    /* NAV TABS */
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px 0;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Assistant', sans-serif;
+      font-size: 0.95rem;
+      padding: 8px 14px;
+      cursor: pointer;
+      border-bottom: 2.5px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+      border-radius: 8px 8px 0 0;
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(79,142,247,0.07);
+    }
+
+    /* MAIN CONTENT */
+    main { padding: 16px; }
+
+    /* VIEWS */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* CARDS LIST */
+    .results-info {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      padding-right: 4px;
+    }
+    .highlight { color: var(--accent); font-weight: 600; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: linear-gradient(to bottom, var(--accent), var(--accent2));
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .card:active { transform: scale(0.99); }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .card-definition {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.5;
+      flex: 1;
+    }
+    .card-meta {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .tag {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .tag-letters {
+      background: rgba(79,142,247,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(79,142,247,0.3);
+    }
+    .tag-type {
+      background: rgba(124,92,191,0.15);
+      color: #a87fe8;
+      border: 1px solid rgba(124,92,191,0.3);
+    }
+    .card-solution {
+      font-family: 'Heebo', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--success);
+      margin-bottom: 6px;
+    }
+    .card-explanation {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      justify-content: flex-end;
+    }
+    .btn-icon {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-icon.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+    mark {
+      background: rgba(79,142,247,0.25);
+      color: var(--accent);
+      border-radius: 3px;
+      padding: 0 1px;
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text); }
+    .empty-state p { font-size: 0.9rem; line-height: 1.6; }
+
+    /* ADD FORM */
+    .form-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .form-section h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-group { margin-bottom: 14px; }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: 'Assistant', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      resize: vertical;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+    }
+    input[type="text"]::placeholder, textarea::placeholder { color: var(--text-muted); }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Assistant', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      box-shadow: 0 4px 15px rgba(79,142,247,0.3);
+    }
+    .btn-primary:active { transform: scale(0.98); }
+
+    /* IMPORT */
+    .import-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .import-zone:hover, .import-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(79,142,247,0.05);
+      color: var(--accent);
+    }
+    .import-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .import-zone .icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .import-zone p { font-size: 0.9rem; line-height: 1.6; }
+    .import-format {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 16px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+      direction: rtl;
+    }
+    .import-format code {
+      background: rgba(79,142,247,0.1);
+      color: var(--accent);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+
+    /* SYNC BUTTON */
+    .sync-btn {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 5px 10px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      line-height: 1;
+    }
+    .sync-btn:hover { border-color: var(--accent); }
+    .sync-btn.syncing { animation: spin 1s linear infinite; }
+    .sync-btn.connected { border-color: var(--success); }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* FILTER BUTTONS */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-btn {
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'Assistant', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .filter-btn:active { transform: scale(0.97); }
+    .filter-btn.active {
+      background: rgba(79,142,247,0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .filter-btn.sort-active {
+      background: rgba(124,92,191,0.15);
+      border-color: var(--accent2);
+      color: #a87fe8;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 22px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow);
+      z-index: 999;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: var(--success); color: var(--success); }
+    .toast.error { border-color: var(--danger); color: var(--danger); }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px;
+      width: 100%;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--accent);
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .btn-secondary {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .btn-danger {
+      flex: 1;
+      background: rgba(224,92,106,0.15);
+      border: 1px solid rgba(224,92,106,0.3);
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <span class="app-title">✦ תשובות להגדרות היגיון</span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="syncBtn" onclick="handleSyncClick()" class="sync-btn" title="סנכרון Google Drive">
+        <span id="syncIcon">☁️</span>
+      </button>
+      <span class="stats-badge" id="statsText">0 הגדרות</span>
+    </div>
+  </div>
+  <div class="search-wrap" id="searchWrap" style="display:none;">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="חפש הגדרה..." autocomplete="off" autocorrect="off" />
+    <button class="clear-search" id="clearSearch" onclick="clearSearch()">✕</button>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="switchTab('search')">🔍 חיפוש</button>
+  <button class="tab-btn" onclick="switchTab('add')">➕ הוסף</button>
+  <button class="tab-btn" onclick="switchTab('import')">📥 ייבוא</button>
+  <button class="tab-btn" onclick="switchTab('dupes')">🔎 כפילויות</button>
+</nav>
+
+<main>
+  <!-- SEARCH VIEW -->
+  <div class="view active" id="view-search">
+    <div class="filter-bar">
+      <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">הכל</button>
+      <button class="filter-btn" id="filter-no-explanation" onclick="setFilter('no-explanation')">💡 ללא הסבר</button>
+      <button class="filter-btn" id="filter-no-solution" onclick="setFilter('no-solution')">❓ ללא תשובה</button>
+      <button class="filter-btn" id="sort-btn" onclick="toggleSort()" style="margin-right:auto;">🔤 א-ב</button>
+    </div>
+    <div class="results-info" id="resultsInfo" style="display:none;"></div>
+    <div id="cardsList"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🧩</div>
+      <h3>אין עדיין הגדרות</h3>
+      <p>הוסף הגדרות דרך לשונית "הוסף"<br/>או ייבא קובץ טקסט דרך "ייבוא"</p>
+    </div>
+  </div>
+
+  <!-- ADD VIEW -->
+  <div class="view" id="view-add">
+    <div class="form-section">
+      <h3>✏️ הוספת הגדרה חדשה</h3>
+
+      <div class="form-group">
+        <label>ההגדרה *</label>
+        <textarea id="f-definition" rows="2" placeholder='למשל: החולים כבר אינם כאלה (6)'></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>מספר אותיות</label>
+          <input type="text" id="f-letters" placeholder="למשל: 6" />
+        </div>
+        <div class="form-group">
+          <label>סוג [ש"כ, ר"ת...]</label>
+          <input type="text" id="f-type" placeholder='למשל: ש"כ' />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>הפתרון</label>
+        <input type="text" id="f-solution" placeholder="למשל: החלימו" />
+      </div>
+
+      <div class="form-group">
+        <label>הסבר</label>
+        <input type="text" id="f-explanation" placeholder="למשל: אנגרם של 'החולים'" />
+      </div>
+
+      <button class="btn btn-primary" onclick="addEntry()">שמור הגדרה</button>
+    </div>
+  </div>
+
+  <!-- IMPORT VIEW -->
+  <div class="view" id="view-import">
+    <div class="form-section">
+      <h3>📥 ייבוא קובץ טקסט</h3>
+      <div class="import-zone" id="importZone">
+        <input type="file" accept=".txt,.csv" onchange="handleFileImport(event)" />
+        <div class="icon">📄</div>
+        <p><strong>לחץ לבחירת קובץ</strong><br/>או גרור לכאן<br/><small>קובץ .txt</small></p>
+      </div>
+      <div class="import-format">
+        <strong>פורמט הקובץ:</strong><br/>
+        כל הגדרה בשורה אחת:<br/>
+        <code>ההגדרה: טקסט (מספר) [סוג] | הפתרון: מילה | הסבר: טקסט</code><br/><br/>
+        <strong>דוגמה:</strong><br/>
+        <code>ההגדרה: החולים כבר אינם כאלה (6) [ש"כ] | הפתרון: החלימו | הסבר: אנגרם של 'החולים'</code><br/><br/>
+        אפשר גם ללא שדה סוג או הסבר.
+      </div>
+    </div>
+
+    <div class="form-section" style="margin-top:0;">
+      <h3>📋 הדבקת טקסט ישיר</h3>
+      <div class="form-group">
+        <label>הדבק כאן מספר הגדרות (כל אחת בשורה)</label>
+        <textarea id="pasteArea" rows="6" placeholder="ההגדרה: טקסט (6) [ש&quot;כ] | הפתרון: מילה | הסבר: הסבר&#10;ההגדרה: עוד הגדרה (4) | הפתרון: תשובה"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="importFromPaste()">ייבא טקסט</button>
+    </div>
+
+    <div class="form-section" style="margin-top:0;">
+      <h3>📤 ייצוא כל ההגדרות</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">מוריד קובץ טקסט עם כל ההגדרות השמורות, בפורמט שניתן לייבא חזרה.</p>
+      <button class="btn btn-primary" onclick="exportEntries()">📤 הורד קובץ ייצוא</button>
+    </div>
+  </div>
+  <!-- DUPES VIEW -->
+  <div class="view" id="view-dupes">
+    <div class="form-section">
+      <h3>🔎 בדיקת כפילויות</h3>
+      <button class="btn btn-primary" onclick="checkDuplicates()" style="margin-bottom:16px;">בדוק עכשיו</button>
+      <div id="dupesResult"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>✏️ עריכת הגדרה</h3>
+    <input type="hidden" id="edit-id" />
+    <div class="form-group">
+      <label>ההגדרה *</label>
+      <textarea id="edit-definition" rows="2"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>מספר אותיות</label>
+        <input type="text" id="edit-letters" />
+      </div>
+      <div class="form-group">
+        <label>סוג</label>
+        <input type="text" id="edit-type" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>הפתרון</label>
+      <input type="text" id="edit-solution" />
+    </div>
+    <div class="form-group">
+      <label>הסבר</label>
+      <input type="text" id="edit-explanation" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ביטול</button>
+      <button class="btn btn-primary" onclick="saveEdit()" style="flex:2;">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>🗑️ מחיקת הגדרה</h3>
+    <p style="color:var(--text-muted);margin-bottom:8px;">האם למחוק את ההגדרה?</p>
+    <p id="delete-preview" style="font-size:0.9rem;color:var(--text);background:var(--surface2);padding:10px;border-radius:8px;"></p>
+    <input type="hidden" id="delete-id" />
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ביטול</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">מחק</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ──────────────────────────────────────────────
+  // DATA LAYER
+  // ──────────────────────────────────────────────
+  const STORAGE_KEY = 'tashbetz_entries';
+
+  function loadData() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    updateStats();
+  }
+
+  let entries = loadData();
+  let currentQuery = '';
+  let currentFilter = 'all';
+  let sortAZ = true;
+
+  // ──────────────────────────────────────────────
+  // UI
+  // ──────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('statsText').textContent = `${entries.length} הגדרות`;
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', ['search','add','import','dupes'][i] === tab);
+    });
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(`view-${tab}`).classList.add('active');
+    document.getElementById('searchWrap').style.display = tab === 'search' ? 'block' : 'none';
+    if (tab === 'search') renderCards(currentQuery);
+  }
+
+  // ──────────────────────────────────────────────
+  // SEARCH
+  // ──────────────────────────────────────────────
+  document.getElementById('searchInput').addEventListener('input', function() {
+    currentQuery = this.value.trim();
+    document.getElementById('clearSearch').style.display = currentQuery ? 'block' : 'none';
+    renderCards(currentQuery);
+  });
+
+  function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    currentQuery = '';
+    document.getElementById('clearSearch').style.display = 'none';
+    renderCards('');
+    document.getElementById('searchInput').focus();
+  }
+
+  function normalize(str) {
+    return str.replace(/[ְִֵֶַָֹֻּׁׂ]/g, '').toLowerCase();
+  }
+
+  function highlightText(text, query) {
+    if (!query) return escapeHtml(text);
+    const escaped = escapeHtml(text);
+    const escapedQ = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escaped.replace(new RegExp(escapedQ, 'gi'), m => `<mark>${m}</mark>`);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function setFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn[id^="filter"]').forEach(b => b.classList.remove('active'));
+    document.getElementById(`filter-${filter}`).classList.add('active');
+    renderCards(currentQuery);
+  }
+
+  function toggleSort() {
+    sortAZ = !sortAZ;
+    const btn = document.getElementById('sort-btn');
+    btn.classList.toggle('sort-active', sortAZ);
+    btn.textContent = sortAZ ? '🔤 א-ב ✓' : '🔤 א-ב';
+    renderCards(currentQuery);
+  }
+
+  function hebrewSort(a, b) {
+    return a.definition.localeCompare(b.definition, 'he');
+  }
+
+  function renderCards(query) {
+    const list = document.getElementById('cardsList');
+    const empty = document.getElementById('emptyState');
+    const info = document.getElementById('resultsInfo');
+
+    const q = normalize(query);
+
+    // Apply search filter
+    let filtered = q
+      ? entries.filter(e => normalize(e.definition).includes(q))
+      : [...entries];
+
+    // Apply category filter
+    if (currentFilter === 'no-explanation') {
+      filtered = filtered.filter(e => !e.explanation || !e.explanation.trim());
+    } else if (currentFilter === 'no-solution') {
+      filtered = filtered.filter(e => !e.solution || !e.solution.trim());
+    }
+
+    // Apply sort
+    if (sortAZ) {
+      filtered = filtered.slice().sort(hebrewSort);
+    }
+
+    if (entries.length === 0) {
+      list.innerHTML = '';
+      empty.style.display = 'block';
+      info.style.display = 'none';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    const showInfo = q || currentFilter !== 'all';
+    if (showInfo) {
+      info.style.display = 'block';
+      let infoText = `נמצאו <span class="highlight">${filtered.length}</span> הגדרות`;
+      if (currentFilter === 'no-explanation') infoText += ' ללא הסבר';
+      if (currentFilter === 'no-solution') infoText += ' ללא תשובה';
+      if (q) infoText += ` עבור "<b>${escapeHtml(query)}</b>"`;
+      infoText += ` מתוך ${entries.length}`;
+      info.innerHTML = infoText;
+    } else {
+      info.style.display = 'none';
+    }
+
+    if (filtered.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🔍</div>
+          <h3>לא נמצאו תוצאות</h3>
+          <p>נסה מילה אחרת או שנה סינון</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(e => `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-definition">${highlightText(e.definition, query)}</div>
+          <div class="card-meta">
+            ${e.letters ? `<span class="tag tag-letters">${e.letters}</span>` : ''}
+            ${e.type ? `<span class="tag tag-type">${escapeHtml(e.type)}</span>` : ''}
+          </div>
+        </div>
+        <div class="card-solution">◈ ${e.solution ? escapeHtml(e.solution) : '<span style="color:var(--danger)">אין תשובה</span>'}</div>
+        ${e.explanation ? `<div class="card-explanation">💡 ${escapeHtml(e.explanation)}</div>` : ''}
+        <div class="card-actions">
+          <button class="btn-icon" onclick="openEdit('${e.id}')">✏️ עריכה</button>
+          <button class="btn-icon danger" onclick="openDelete('${e.id}')">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ──────────────────────────────────────────────
+  // ADD
+  // ──────────────────────────────────────────────
+  function addEntry() {
+    const definition = document.getElementById('f-definition').value.trim();
+    const solution = document.getElementById('f-solution').value.trim();
+    const letters = document.getElementById('f-letters').value.trim();
+    const type = document.getElementById('f-type').value.trim();
+    const explanation = document.getElementById('f-explanation').value.trim();
+
+    if (!definition) {
+      showToast('נדרשת הגדרה', 'error');
+      return;
+    }
+
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      definition, solution, letters, type, explanation,
+      createdAt: Date.now()
+    };
+
+    entries.unshift(entry);
+    saveData(entries);
+
+    document.getElementById('f-definition').value = '';
+    document.getElementById('f-solution').value = '';
+    document.getElementById('f-letters').value = '';
+    document.getElementById('f-type').value = '';
+    document.getElementById('f-explanation').value = '';
+
+    showToast('✅ ההגדרה נוספה!', 'success');
+    switchTab('search');
+  }
+
+  // ──────────────────────────────────────────────
+  // PARSE ENTRY LINE
+  // ──────────────────────────────────────────────
+  function parseEntryLine(line) {
+    line = line.trim();
+    if (!line) return null;
+
+    // Split by | separator
+    const parts = line.split('|').map(p => p.trim());
+
+    let definition = '', solution = '', explanation = '', letters = '', type = '';
+
+    for (const part of parts) {
+      if (part.startsWith('ההגדרה:') || part.startsWith('הגדרה:')) {
+        let def = part.replace(/^(ה)?הגדרה:\s*/, '');
+        // Extract letters (number in parens)
+        const lettersMatch = def.match(/\((\d+)\)/);
+        if (lettersMatch) letters = lettersMatch[1];
+        // Extract type [...]
+        const typeMatch = def.match(/\[([^\]]+)\]/);
+        if (typeMatch) type = typeMatch[1];
+        // Clean definition
+        definition = def.replace(/\s*\(\d+\)\s*/g, '').replace(/\s*\[[^\]]+\]\s*/g, '').trim();
+      } else if (part.startsWith('הפתרון:') || part.startsWith('פתרון:')) {
+        solution = part.replace(/^(ה)?פתרון:\s*/, '').trim();
+      } else if (part.startsWith('הסבר:') || part.startsWith('סבר:')) {
+        explanation = part.replace(/^(ה)?סבר:\s*/, '').trim();
+      }
+    }
+
+    // Fallback: if no pipes, try to parse as "הגדרה: X (N) [Y] הפתרון: Z הסבר: W"
+    if (!solution && parts.length === 1) {
+      const m = line.match(/^(?:ה?הגדרה:\s*)?(.+?)\s*(?:\((\d+)\))?\s*(?:\[([^\]]+)\])?\s*\|\s*(?:ה?פתרון:\s*)(.+?)(?:\s*\|\s*(?:ה?סבר:\s*)(.+))?$/);
+      if (m) {
+        definition = m[1].trim();
+        letters = m[2] || '';
+        type = m[3] || '';
+        solution = m[4].trim();
+        explanation = m[5] ? m[5].trim() : '';
+      }
+    }
+
+    if (!definition) return null;
+
+    return {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2),
+      definition, solution, letters, type, explanation,
+      createdAt: Date.now()
+    };
+  }
+
+  // ──────────────────────────────────────────────
+  // IMPORT FROM FILE
+  // ──────────────────────────────────────────────
+  function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      processImportText(text);
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function importFromPaste() {
+    const text = document.getElementById('pasteArea').value;
+    if (!text.trim()) { showToast('אין טקסט להייבא', 'error'); return; }
+    processImportText(text);
+    document.getElementById('pasteArea').value = '';
+  }
+
+  function normalizeDefinition(str) {
+    return str.trim().replace(/\s+/g, ' ').toLowerCase();
+  }
+
+  function processImportText(text) {
+    const lines = text.split('\n');
+    let added = 0, updated = 0, skipped = 0, failed = 0;
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const entry = parseEntryLine(line);
+      if (!entry) { failed++; continue; }
+
+      // Check for existing entry with same definition (normalized)
+      const normNew = normalizeDefinition(entry.definition);
+      const existingIdx = entries.findIndex(e => normalizeDefinition(e.definition) === normNew);
+
+      if (existingIdx !== -1) {
+        const existing = entries[existingIdx];
+        let changed = false;
+        let updatedEntry = { ...existing };
+
+        // אם ההגדרה הקיימת ללא פתרון והחדשה יש לה — עדכן פתרון
+        if (entry.solution && !existing.solution) {
+          updatedEntry.solution = entry.solution;
+          changed = true;
+        }
+        // אם ההגדרה הקיימת ללא הסבר והחדשה יש לה — עדכן הסבר
+        if (entry.explanation && !existing.explanation) {
+          updatedEntry.explanation = entry.explanation;
+          changed = true;
+        }
+
+        if (changed) {
+          entries[existingIdx] = updatedEntry;
+          updated++;
+        } else {
+          skipped++;
+        }
+      } else {
+        entries.unshift(entry);
+        added++;
+      }
+    }
+
+    saveData(entries);
+
+    const parts = [];
+    if (added > 0) parts.push(`נוספו ${added} חדשות`);
+    if (updated > 0) parts.push(`עודכנו ${updated} פתרונות/הסברים`);
+    if (skipped > 0) parts.push(`${skipped} כפילויות דולגו`);
+    if (failed > 0) parts.push(`${failed} שורות לא זוהו`);
+
+    if (added > 0 || updated > 0) {
+      showToast(`✅ ${parts.join(' · ')}`, 'success');
+      switchTab('search');
+    } else if (skipped > 0) {
+      showToast(`⚠️ ${parts.join(' · ')}`, '');
+    } else {
+      showToast('לא זוהו הגדרות — בדוק את הפורמט', 'error');
+    }
+  }
+
+  // Drag and drop
+  const zone = document.getElementById('importZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = ev => processImportText(ev.target.result);
+      reader.readAsText(file, 'UTF-8');
+    }
+  });
+
+  // ──────────────────────────────────────────────
+  // EDIT
+  // ──────────────────────────────────────────────
+  function openEdit(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-definition').value = e.definition;
+    document.getElementById('edit-letters').value = e.letters || '';
+    document.getElementById('edit-type').value = e.type || '';
+    document.getElementById('edit-solution').value = e.solution;
+    document.getElementById('edit-explanation').value = e.explanation || '';
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  function saveEdit() {
+    const id = document.getElementById('edit-id').value;
+    const idx = entries.findIndex(x => x.id === id);
+    if (idx === -1) return;
+
+    const def = document.getElementById('edit-definition').value.trim();
+    const sol = document.getElementById('edit-solution').value.trim();
+    if (!def) { showToast('נדרשת הגדרה', 'error'); return; }
+
+    entries[idx] = {
+      ...entries[idx],
+      definition: def,
+      letters: document.getElementById('edit-letters').value.trim(),
+      type: document.getElementById('edit-type').value.trim(),
+      solution: sol,
+      explanation: document.getElementById('edit-explanation').value.trim(),
+    };
+
+    saveData(entries);
+    closeModal();
+    renderCards(currentQuery);
+    showToast('✅ ההגדרה עודכנה', 'success');
+  }
+
+  // ──────────────────────────────────────────────
+  // DELETE
+  // ──────────────────────────────────────────────
+  function openDelete(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    document.getElementById('delete-id').value = id;
+    document.getElementById('delete-preview').textContent = e.definition + ' → ' + e.solution;
+    document.getElementById('deleteModal').classList.add('open');
+  }
+
+  function confirmDelete() {
+    const id = document.getElementById('delete-id').value;
+    entries = entries.filter(x => x.id !== id);
+    saveData(entries);
+    closeModal();
+    renderCards(currentQuery);
+    showToast('🗑️ ההגדרה נמחקה', 'success');
+  }
+
+  function closeModal() {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) closeModal();
+    });
+  });
+
+  // ──────────────────────────────────────────────
+  // TOAST
+  // ──────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ──────────────────────────────────────────────
+  // EXPORT
+  // ──────────────────────────────────────────────
+  function exportEntries() {
+    if (entries.length === 0) {
+      showToast('אין הגדרות לייצוא', 'error');
+      return;
+    }
+    const lines = entries.map(e => {
+      let def = `ההגדרה: ${e.definition}`;
+      if (e.letters) def += ` (${e.letters})`;
+      if (e.type) def += ` [${e.type}]`;
+      const parts = [def, `הפתרון: ${e.solution || ''}`];
+      if (e.explanation) parts.push(`הסבר: ${e.explanation}`);
+      return parts.join(' | ');
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `תשובות_להגדרות_היגיון_${new Date().toLocaleDateString('he-IL').replace(/\//g,'-')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`✅ יוצאו ${entries.length} הגדרות`, 'success');
+  }
+
+  // ──────────────────────────────────────────────
+  // DUPLICATES
+  // ──────────────────────────────────────────────
+  function checkDuplicates() {
+    const seen = {};
+    const groups = [];
+
+    for (const e of entries) {
+      const key = normalizeDefinition(e.definition);
+      if (!seen[key]) seen[key] = [];
+      seen[key].push(e);
+    }
+
+    for (const key in seen) {
+      if (seen[key].length > 1) groups.push(seen[key]);
+    }
+
+    const container = document.getElementById('dupesResult');
+
+    if (groups.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="padding:30px 0;">
+          <div class="icon">✅</div>
+          <h3>אין כפילויות!</h3>
+          <p>כל ${entries.length} ההגדרות ייחודיות</p>
+        </div>`;
+      return;
+    }
+
+    let html = `<div class="results-info" style="display:block;margin-bottom:14px;">
+      נמצאו <span class="highlight">${groups.length}</span> קבוצות כפילויות
+      <button class="btn-icon danger" style="margin-right:10px;font-size:0.8rem;" onclick="deleteAllDupes()">🗑️ מחק כפילויות אוטומטית</button>
+    </div>`;
+
+    for (const group of groups) {
+      html += `<div class="card" style="border-color:var(--danger);margin-bottom:14px;">
+        <div style="font-size:0.75rem;color:var(--danger);font-weight:700;margin-bottom:10px;">⚠️ ${group.length} כניסות זהות</div>`;
+      group.forEach((e, idx) => {
+        html += `
+          <div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;position:relative;">
+            <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">${escapeHtml(e.definition)}</div>
+            <div style="font-size:0.9rem;color:var(--success);">◈ ${escapeHtml(e.solution)}</div>
+            ${e.explanation ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">💡 ${escapeHtml(e.explanation)}</div>` : ''}
+            <div style="margin-top:8px;display:flex;gap:6px;">
+              ${idx > 0 ? `<button class="btn-icon danger" onclick="deleteDupe('${e.id}')" style="font-size:0.8rem;">🗑️ מחק עותק זה</button>` : `<span style="font-size:0.75rem;color:var(--text-muted);padding:4px 8px;">← ישמר</span>`}
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+    }
+
+    container.innerHTML = html;
+  }
+
+  function deleteDupe(id) {
+    entries = entries.filter(e => e.id !== id);
+    saveData(entries);
+    showToast('🗑️ הכפילות נמחקה', 'success');
+    checkDuplicates();
+  }
+
+  function deleteAllDupes() {
+    const seen = {};
+    const toKeep = [];
+    for (const e of entries) {
+      const key = normalizeDefinition(e.definition);
+      if (!seen[key]) {
+        seen[key] = true;
+        toKeep.push(e);
+      }
+    }
+    const removed = entries.length - toKeep.length;
+    entries = toKeep;
+    saveData(entries);
+    showToast(`✅ נמחקו ${removed} כפילויות`, 'success');
+    checkDuplicates();
+  }
+
+  // ──────────────────────────────────────────────
+  // GOOGLE DRIVE SYNC
+  // ──────────────────────────────────────────────
+  const GDRIVE_CLIENT_ID = '361524127527-b5cvvltaj5btoitfe07lcf7053hp7vhl.apps.googleusercontent.com';
+  const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+  const GDRIVE_FILENAME = 'tashbetz_entries.json';
+
+  let gAccessToken = localStorage.getItem('g_access_token') || null;
+  let gFileId = localStorage.getItem('g_file_id') || null;
+  let isSyncing = false;
+
+  function updateSyncBtn(state) {
+    const btn = document.getElementById('syncBtn');
+    const icon = document.getElementById('syncIcon');
+    btn.classList.remove('syncing', 'connected');
+    if (state === 'connected') { icon.textContent = '✅'; btn.classList.add('connected'); btn.title = 'מחובר ל-Google Drive — לחץ לסנכרון'; }
+    else if (state === 'syncing') { icon.textContent = '🔄'; btn.classList.add('syncing'); btn.title = 'מסנכרן...'; }
+    else if (state === 'error') { icon.textContent = '⚠️'; btn.title = 'שגיאת סנכרון — לחץ לנסות שוב'; }
+    else { icon.textContent = '☁️'; btn.title = 'התחבר ל-Google Drive'; }
+  }
+
+  function handleSyncClick() {
+    if (!gAccessToken) {
+      signInGoogle();
+    } else {
+      syncWithDrive();
+    }
+  }
+
+  function signInGoogle() {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: GDRIVE_CLIENT_ID,
+      scope: GDRIVE_SCOPE,
+      callback: async (resp) => {
+        if (resp.error) { showToast('שגיאה בהתחברות לגוגל', 'error'); return; }
+        gAccessToken = resp.access_token;
+        localStorage.setItem('g_access_token', gAccessToken);
+        showToast('✅ מחובר ל-Google Drive!', 'success');
+        updateSyncBtn('connected');
+        await syncWithDrive();
+      },
+    });
+    client.requestAccessToken();
+  }
+
+  async function driveRequest(url, options = {}) {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${gAccessToken}`,
+        ...(options.headers || {})
+      }
+    });
+    if (res.status === 401) {
+      // Token expired
+      gAccessToken = null;
+      localStorage.removeItem('g_access_token');
+      updateSyncBtn('disconnected');
+      showToast('פג תוקף החיבור — התחבר שוב', 'error');
+      return null;
+    }
+    return res;
+  }
+
+  async function findOrCreateFile() {
+    // Search for existing file
+    const searchRes = await driveRequest(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${GDRIVE_FILENAME}'&fields=files(id,name,modifiedTime)`
+    );
+    if (!searchRes) return null;
+    const data = await searchRes.json();
+    if (data.files && data.files.length > 0) {
+      gFileId = data.files[0].id;
+      localStorage.setItem('g_file_id', gFileId);
+      return gFileId;
+    }
+    // Create new file
+    const createRes = await driveRequest(
+      'https://www.googleapis.com/drive/v3/files',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: GDRIVE_FILENAME, parents: ['appDataFolder'] })
+      }
+    );
+    if (!createRes) return null;
+    const created = await createRes.json();
+    gFileId = created.id;
+    localStorage.setItem('g_file_id', gFileId);
+    return gFileId;
+  }
+
+  async function readFromDrive() {
+    if (!gFileId) return null;
+    const res = await driveRequest(
+      `https://www.googleapis.com/drive/v3/files/${gFileId}?alt=media`
+    );
+    if (!res || !res.ok) return null;
+    try { return await res.json(); } catch { return null; }
+  }
+
+  async function writeToDrive(data) {
+    if (!gFileId) return false;
+    const res = await driveRequest(
+      `https://www.googleapis.com/upload/drive/v3/files/${gFileId}?uploadType=media`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }
+    );
+    return res && res.ok;
+  }
+
+  async function syncWithDrive() {
+    if (isSyncing || !gAccessToken) return;
+    isSyncing = true;
+    updateSyncBtn('syncing');
+
+    try {
+      if (!gFileId) await findOrCreateFile();
+      if (!gFileId) throw new Error('no file');
+
+      const driveData = await readFromDrive();
+
+      if (!driveData || driveData.length === 0) {
+        // Drive is empty — upload local data
+        await writeToDrive(entries);
+        showToast(`✅ הועלו ${entries.length} הגדרות ל-Drive`, 'success');
+      } else {
+        // Merge: combine drive + local, deduplicate
+        const merged = mergeEntries(entries, driveData);
+        const added = merged.length - entries.length;
+        entries = merged;
+        saveData(entries);
+        await writeToDrive(entries);
+        renderCards(currentQuery);
+        if (added > 0) showToast(`✅ סונכרן — נוספו ${added} הגדרות מ-Drive`, 'success');
+        else showToast('✅ סונכרן בהצלחה', 'success');
+      }
+
+      updateSyncBtn('connected');
+      localStorage.setItem('g_last_sync', new Date().toISOString());
+    } catch (e) {
+      console.error(e);
+      updateSyncBtn('error');
+      showToast('שגיאה בסנכרון', 'error');
+    }
+
+    isSyncing = false;
+  }
+
+  function mergeEntries(local, remote) {
+    const seen = {};
+    const result = [];
+    for (const e of [...local, ...remote]) {
+      const key = normalizeDefinition(e.definition);
+      if (!seen[key]) {
+        seen[key] = true;
+        result.push(e);
+      } else {
+        // If existing has no solution/explanation but this one does — update
+        const idx = result.findIndex(r => normalizeDefinition(r.definition) === key);
+        if (idx !== -1) {
+          if (!result[idx].solution && e.solution) result[idx].solution = e.solution;
+          if (!result[idx].explanation && e.explanation) result[idx].explanation = e.explanation;
+        }
+      }
+    }
+    return result;
+  }
+
+  // Auto-sync after every save if connected
+  const _originalSaveData = saveData;
+  function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    updateStats();
+    if (gAccessToken && !isSyncing) {
+      clearTimeout(saveData._timer);
+      saveData._timer = setTimeout(() => writeToDrive(data), 2000);
+    }
+  }
+
+  // Check if already connected on load
+  if (gAccessToken) {
+    updateSyncBtn('connected');
+    // Auto sync on load
+    setTimeout(() => syncWithDrive(), 1500);
+  }
+
+  // ──────────────────────────────────────────────
+  updateStats();
+  document.getElementById('searchWrap').style.display = 'block';
+  renderCards('');
+
+  // Register service worker for PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
