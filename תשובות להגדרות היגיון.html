@@ -642,6 +642,7 @@
   <button class="tab-btn" onclick="switchTab('import')">📥 ייבוא</button>
   <button class="tab-btn" id="tab-dupes" onclick="switchTab('dupes')" style="display:none;">🔎 כפילויות</button>
   <button class="tab-btn" onclick="switchTab('delete')">🗑️ מחיקה</button>
+  <button class="tab-btn" id="tab-approvals" onclick="switchTab('approvals')" style="display:none;">✅ אישורים</button>
 </nav>
 
 <main>
@@ -760,6 +761,14 @@
     </div>
   </div>
 
+  <!-- APPROVALS VIEW -->
+  <div class="view" id="view-approvals">
+    <div class="form-section">
+      <h3>✅ הצעות ממתינות לאישור</h3>
+      <div id="approvalsResult"></div>
+    </div>
+  </div>
+
 </main>
 
 <!-- MODAL -->
@@ -843,7 +852,7 @@
 
   function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach((b, i) => {
-      b.classList.toggle('active', ['search','add','import','dupes','delete'][i] === tab);
+      b.classList.toggle('active', ['search','add','import','dupes','delete','approvals'][i] === tab);
     });
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(`view-${tab}`).classList.add('active');
@@ -1028,17 +1037,23 @@
       createdAt: Date.now()
     };
 
-    entries.unshift(entry);
-    saveData(entries);
-
+    // Clear fields
     document.getElementById('f-definition').value = '';
     document.getElementById('f-solution').value = '';
     document.getElementById('f-letters').value = '';
     document.getElementById('f-type').value = '';
     document.getElementById('f-explanation').value = '';
 
-    showToast('✅ ההגדרה נוספה!', 'success');
-    switchTab('search');
+    if (!gAccessToken || isOwner) {
+      // Owner or offline: add directly
+      entries.unshift(entry);
+      saveData(entries);
+      showToast('✅ ההגדרה נוספה!', 'success');
+      switchTab('search');
+    } else {
+      // Non-owner: send to pending queue
+      submitEntryAsPending(entry);
+    }
   }
 
   // ──────────────────────────────────────────────
@@ -1377,32 +1392,35 @@
   }
 
   // ──────────────────────────────────────────────
-  // GOOGLE DRIVE SYNC
+  // GOOGLE DRIVE SYNC — SHARED FOLDER
   // ──────────────────────────────────────────────
   const GDRIVE_CLIENT_ID = '361524127527-b5cvvltaj5btoitfe07lcf7053hp7vhl.apps.googleusercontent.com';
-  const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
-  const GDRIVE_FILENAME = 'tashbetz_entries.json';
+  const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
+  const OWNER_EMAIL = '012ohad@gmail.com';
+  const FOLDER_ID = '1poPxM9l92zhppX13f9gdzS14vz9ZSSPk';
+  const ENTRIES_FILENAME = 'tashbetz_entries.json';
+  const PENDING_FILENAME = 'tashbetz_pending.json';
 
   let gAccessToken = localStorage.getItem('g_access_token') || null;
-  let gFileId = localStorage.getItem('g_file_id') || null;
+  let gUserEmail = localStorage.getItem('g_user_email') || null;
+  let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
+  let gPendingFileId = localStorage.getItem('g_pending_file_id') || null;
   let isSyncing = false;
+  let isOwner = false;
 
   function updateSyncBtn(state) {
     const btn = document.getElementById('syncBtn');
     const icon = document.getElementById('syncIcon');
     btn.classList.remove('syncing', 'connected');
-    if (state === 'connected') { icon.textContent = '✅'; btn.classList.add('connected'); btn.title = 'מחובר ל-Google Drive — לחץ לסנכרון'; }
+    if (state === 'connected') { icon.textContent = isOwner ? '👑' : '✅'; btn.classList.add('connected'); btn.title = isOwner ? 'מחובר כמנהל' : 'מחובר — לחץ לסנכרון'; }
     else if (state === 'syncing') { icon.textContent = '🔄'; btn.classList.add('syncing'); btn.title = 'מסנכרן...'; }
-    else if (state === 'error') { icon.textContent = '⚠️'; btn.title = 'שגיאת סנכרון — לחץ לנסות שוב'; }
+    else if (state === 'error') { icon.textContent = '⚠️'; btn.title = 'שגיאת סנכרון'; }
     else { icon.textContent = '☁️'; btn.title = 'התחבר ל-Google Drive'; }
   }
 
   function handleSyncClick() {
-    if (!gAccessToken) {
-      signInGoogle();
-    } else {
-      syncWithDrive();
-    }
+    if (!gAccessToken) signInGoogle();
+    else syncWithDrive();
   }
 
   function signInGoogle() {
@@ -1410,13 +1428,24 @@
       client_id: GDRIVE_CLIENT_ID,
       scope: GDRIVE_SCOPE,
       callback: async (resp) => {
-        if (resp.error) { showToast('שגיאה בהתחברות לגוגל', 'error'); return; }
+        if (resp.error) { showToast('שגיאה בהתחברות', 'error'); return; }
         gAccessToken = resp.access_token;
         localStorage.setItem('g_access_token', gAccessToken);
-        showToast('✅ מחובר ל-Google Drive!', 'success');
+        // Get user email
+        try {
+          const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { 'Authorization': `Bearer ${gAccessToken}` }
+          });
+          const u = await info.json();
+          gUserEmail = u.email;
+          localStorage.setItem('g_user_email', gUserEmail);
+        } catch(e) {}
+        isOwner = gUserEmail === OWNER_EMAIL;
         updateSyncBtn('connected');
+        updateApprovalsTab();
+        showToast(`✅ מחובר כ-${isOwner ? 'מנהל' : 'משתמש'}`, 'success');
         await syncWithDrive();
-      },
+      }
     });
     client.requestAccessToken();
   }
@@ -1424,13 +1453,9 @@
   async function driveRequest(url, options = {}) {
     const res = await fetch(url, {
       ...options,
-      headers: {
-        'Authorization': `Bearer ${gAccessToken}`,
-        ...(options.headers || {})
-      }
+      headers: { 'Authorization': `Bearer ${gAccessToken}`, ...(options.headers || {}) }
     });
     if (res.status === 401) {
-      // Token expired
       gAccessToken = null;
       localStorage.removeItem('g_access_token');
       updateSyncBtn('disconnected');
@@ -1440,52 +1465,43 @@
     return res;
   }
 
-  async function findOrCreateFile() {
-    // Search for existing file
-    const searchRes = await driveRequest(
-      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${GDRIVE_FILENAME}'&fields=files(id,name,modifiedTime)`
+  async function findFileInFolder(filename) {
+    const res = await driveRequest(
+      `https://www.googleapis.com/drive/v3/files?q=name='${filename}' and '${FOLDER_ID}' in parents and trashed=false&fields=files(id,name)`
     );
-    if (!searchRes) return null;
-    const data = await searchRes.json();
-    if (data.files && data.files.length > 0) {
-      gFileId = data.files[0].id;
-      localStorage.setItem('g_file_id', gFileId);
-      return gFileId;
-    }
-    // Create new file
-    const createRes = await driveRequest(
-      'https://www.googleapis.com/drive/v3/files',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: GDRIVE_FILENAME, parents: ['appDataFolder'] })
-      }
-    );
-    if (!createRes) return null;
-    const created = await createRes.json();
-    gFileId = created.id;
-    localStorage.setItem('g_file_id', gFileId);
-    return gFileId;
+    if (!res) return null;
+    const data = await res.json();
+    return data.files && data.files.length > 0 ? data.files[0].id : null;
   }
 
-  async function readFromDrive() {
-    if (!gFileId) return null;
-    const res = await driveRequest(
-      `https://www.googleapis.com/drive/v3/files/${gFileId}?alt=media`
-    );
+  async function createFileInFolder(filename, content) {
+    // Create metadata
+    const meta = await driveRequest('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: filename, parents: [FOLDER_ID], mimeType: 'application/json' })
+    });
+    if (!meta) return null;
+    const { id } = await meta.json();
+    // Upload content
+    await driveRequest(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(content)
+    });
+    return id;
+  }
+
+  async function readFile(fileId) {
+    const res = await driveRequest(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
     if (!res || !res.ok) return null;
     try { return await res.json(); } catch { return null; }
   }
 
-  async function writeToDrive(data) {
-    if (!gFileId) return false;
+  async function writeFile(fileId, data) {
     const res = await driveRequest(
-      `https://www.googleapis.com/upload/drive/v3/files/${gFileId}?uploadType=media`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      }
+      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+      { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }
     );
     return res && res.ok;
   }
@@ -1496,36 +1512,165 @@
     updateSyncBtn('syncing');
 
     try {
-      if (!gFileId) await findOrCreateFile();
-      if (!gFileId) throw new Error('no file');
+      isOwner = gUserEmail === OWNER_EMAIL;
 
-      const driveData = await readFromDrive();
+      // Find entries file
+      if (!gEntriesFileId) {
+        gEntriesFileId = await findFileInFolder(ENTRIES_FILENAME);
+        if (gEntriesFileId) localStorage.setItem('g_entries_file_id', gEntriesFileId);
+      }
 
-      if (!driveData || driveData.length === 0) {
-        // Drive is empty — upload local data
-        await writeToDrive(entries);
-        showToast(`✅ הועלו ${entries.length} הגדרות ל-Drive`, 'success');
+      // Find pending file
+      if (!gPendingFileId) {
+        gPendingFileId = await findFileInFolder(PENDING_FILENAME);
+        if (gPendingFileId) localStorage.setItem('g_pending_file_id', gPendingFileId);
+      }
+
+      if (isOwner) {
+        // OWNER: read from drive, merge with local, write back
+        if (!gEntriesFileId) {
+          // First time — create file with current entries
+          gEntriesFileId = await createFileInFolder(ENTRIES_FILENAME, entries);
+          localStorage.setItem('g_entries_file_id', gEntriesFileId);
+          showToast(`✅ מאגר הועלה ל-Drive (${entries.length} הגדרות)`, 'success');
+        } else {
+          const driveEntries = await readFile(gEntriesFileId);
+          if (driveEntries && driveEntries.length > 0) {
+            const merged = mergeEntries(entries, driveEntries);
+            entries = merged;
+            saveDataLocal(entries);
+            await writeFile(gEntriesFileId, entries);
+            renderCards(currentQuery);
+          } else {
+            await writeFile(gEntriesFileId, entries);
+          }
+          showToast('✅ סונכרן', 'success');
+        }
+
+        // Create pending file if missing
+        if (!gPendingFileId) {
+          gPendingFileId = await createFileInFolder(PENDING_FILENAME, []);
+          localStorage.setItem('g_pending_file_id', gPendingFileId);
+        }
+
+        // Check for pending approvals
+        await checkPendingApprovals();
+
       } else {
-        // Merge: combine drive + local, deduplicate
-        const merged = mergeEntries(entries, driveData);
-        const added = merged.length - entries.length;
-        entries = merged;
-        saveData(entries);
-        await writeToDrive(entries);
-        renderCards(currentQuery);
-        if (added > 0) showToast(`✅ סונכרן — נוספו ${added} הגדרות מ-Drive`, 'success');
-        else showToast('✅ סונכרן בהצלחה', 'success');
+        // OTHER USER: read main entries from drive
+        if (gEntriesFileId) {
+          const driveEntries = await readFile(gEntriesFileId);
+          if (driveEntries && driveEntries.length > 0) {
+            const merged = mergeEntries(entries, driveEntries);
+            const added = merged.length - entries.length;
+            entries = merged;
+            saveDataLocal(entries);
+            renderCards(currentQuery);
+            if (added > 0) showToast(`✅ סונכרן — נוספו ${added} הגדרות`, 'success');
+            else showToast('✅ סונכרן', 'success');
+          }
+        }
       }
 
       updateSyncBtn('connected');
-      localStorage.setItem('g_last_sync', new Date().toISOString());
-    } catch (e) {
+    } catch(e) {
       console.error(e);
       updateSyncBtn('error');
       showToast('שגיאה בסנכרון', 'error');
     }
-
     isSyncing = false;
+  }
+
+  // Submit a pending suggestion (non-owner)
+  async function submitPending(entry) {
+    if (!gPendingFileId) {
+      gPendingFileId = await findFileInFolder(PENDING_FILENAME);
+      if (!gPendingFileId) { showToast('לא ניתן לשלוח הצעה כרגע', 'error'); return false; }
+      localStorage.setItem('g_pending_file_id', gPendingFileId);
+    }
+    const pending = await readFile(gPendingFileId) || [];
+    pending.push({ ...entry, submittedBy: gUserEmail, submittedAt: Date.now() });
+    await writeFile(gPendingFileId, pending);
+    return true;
+  }
+
+  // OWNER: check and show pending approvals
+  async function checkPendingApprovals() {
+    if (!isOwner || !gPendingFileId) return;
+    const pending = await readFile(gPendingFileId) || [];
+    const tab = document.getElementById('tab-approvals');
+    if (tab) {
+      tab.style.display = pending.length > 0 ? 'inline-block' : 'none';
+      if (pending.length > 0) tab.textContent = `✅ אישורים (${pending.length})`;
+    }
+    renderApprovals(pending);
+  }
+
+  function renderApprovals(pending) {
+    const container = document.getElementById('approvalsResult');
+    if (!container) return;
+    if (pending.length === 0) {
+      container.innerHTML = `<div class="empty-state" style="padding:30px 0;"><div class="icon">✅</div><h3>אין הצעות ממתינות</h3></div>`;
+      return;
+    }
+    container.innerHTML = pending.map((e, idx) => `
+      <div class="card" style="margin-bottom:10px;">
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">הוצע על ידי: ${e.submittedBy || 'לא ידוע'}</div>
+        <div class="card-definition">${escapeHtml(e.definition)}</div>
+        ${e.solution ? `<div class="card-solution">◈ ${escapeHtml(e.solution)}</div>` : ''}
+        ${e.explanation ? `<div class="card-explanation">${escapeHtml(e.explanation)}</div>` : ''}
+        <div class="card-actions" style="margin-top:10px;">
+          <button class="btn-icon" style="color:var(--success);border-color:rgba(6,214,160,0.4);" onclick="approvePending(${idx})">✅ אשר</button>
+          <button class="btn-icon danger" onclick="rejectPending(${idx})">❌ דחה</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function approvePending(idx) {
+    const pending = await readFile(gPendingFileId) || [];
+    const entry = pending[idx];
+    if (!entry) return;
+    // Add to main entries
+    const normNew = normalizeDefinition(entry.definition);
+    const exists = entries.findIndex(e => normalizeDefinition(e.definition) === normNew);
+    if (exists === -1) {
+      entries.unshift({ ...entry, id: Date.now().toString(36) + Math.random().toString(36).slice(2) });
+    } else {
+      if (!entries[exists].solution && entry.solution) entries[exists].solution = entry.solution;
+      if (!entries[exists].explanation && entry.explanation) entries[exists].explanation = entry.explanation;
+    }
+    saveDataLocal(entries);
+    await writeFile(gEntriesFileId, entries);
+    // Remove from pending
+    pending.splice(idx, 1);
+    await writeFile(gPendingFileId, pending);
+    renderCards(currentQuery);
+    showToast('✅ ההצעה אושרה!', 'success');
+    renderApprovals(pending);
+    const tab = document.getElementById('tab-approvals');
+    if (tab) {
+      tab.style.display = pending.length > 0 ? 'inline-block' : 'none';
+      if (pending.length > 0) tab.textContent = `✅ אישורים (${pending.length})`;
+    }
+  }
+
+  async function rejectPending(idx) {
+    const pending = await readFile(gPendingFileId) || [];
+    pending.splice(idx, 1);
+    await writeFile(gPendingFileId, pending);
+    showToast('❌ ההצעה נדחתה', '');
+    renderApprovals(pending);
+    const tab = document.getElementById('tab-approvals');
+    if (tab) {
+      tab.style.display = pending.length > 0 ? 'inline-block' : 'none';
+      if (pending.length > 0) tab.textContent = `✅ אישורים (${pending.length})`;
+    }
+  }
+
+  function updateApprovalsTab() {
+    const tab = document.getElementById('tab-approvals');
+    if (tab) tab.style.display = isOwner ? 'none' : 'none'; // shown only after checking pending
   }
 
   function mergeEntries(local, remote) {
@@ -1533,11 +1678,8 @@
     const result = [];
     for (const e of [...local, ...remote]) {
       const key = normalizeDefinition(e.definition);
-      if (!seen[key]) {
-        seen[key] = true;
-        result.push(e);
-      } else {
-        // If existing has no solution/explanation but this one does — update
+      if (!seen[key]) { seen[key] = true; result.push(e); }
+      else {
         const idx = result.findIndex(r => normalizeDefinition(r.definition) === key);
         if (idx !== -1) {
           if (!result[idx].solution && e.solution) result[idx].solution = e.solution;
@@ -1548,23 +1690,34 @@
     return result;
   }
 
-  // Auto-sync after every save if connected
-  const _originalSaveData = saveData;
+  // saveDataLocal — saves only to localStorage (no Drive write)
+  function saveDataLocal(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    updateStats();
+  }
+
+  // saveData — saves to localStorage + schedules Drive write (owner only)
   function saveData(data) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     updateStats();
-    if (gAccessToken && !isSyncing) {
+    if (gAccessToken && isOwner && !isSyncing && gEntriesFileId) {
       clearTimeout(saveData._timer);
-      saveData._timer = setTimeout(() => writeToDrive(data), 2000);
+      saveData._timer = setTimeout(() => writeFile(gEntriesFileId, data), 2000);
     }
+  }
+
+  // Non-owner add: submit as pending instead
+  async function submitEntryAsPending(entry) {
+    if (!gAccessToken) { showToast('התחבר ל-Google כדי לשלוח הצעה', 'error'); return; }
+    const ok = await submitPending(entry);
+    if (ok) showToast('📨 ההצעה נשלחה לאישור האימייל שלך!', 'success');
   }
 
   // Check if already connected on load
   if (gAccessToken) {
+    isOwner = gUserEmail === OWNER_EMAIL;
     updateSyncBtn('connected');
-    // Auto sync on load
     setTimeout(() => syncWithDrive(), 1500);
-    // Auto sync every 5 minutes
     setInterval(() => syncWithDrive(), 5 * 60 * 1000);
   }
 
