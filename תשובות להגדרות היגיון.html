@@ -647,6 +647,7 @@
       <span id="syncIcon">☁️</span>
     </button>
     <span class="stats-badge" id="statsText">0 הגדרות</span>
+    <span id="loadedInfo" style="font-size:0.8rem;color:var(--accent);display:none;"></span>
   </div>
   <div class="search-wrap" id="searchWrap" style="display:none;">
     <select class="search-field-select" id="searchField" onchange="onSearchFieldChange()">
@@ -892,6 +893,8 @@
   let sortAZ = true;
   let searchField = 'definition';
 
+  const ENTRIES_PAGE_SIZE = 50; // שנה כאן את הכמות לטעינה בכל עמוד
+
   // ──────────────────────────────────────────────
   // UI
   // ──────────────────────────────────────────────
@@ -1043,6 +1046,17 @@
     const start = 0;
     const end = (entriesPage + 1) * ENTRIES_PAGE_SIZE;
     const pageFiltered = filtered.slice(start, end);
+    // הצגת כמות טעינה בפועל
+    const loadedCount = Math.min(end, filtered.length);
+    const loadedInfo = document.getElementById('loadedInfo');
+    if (loadedInfo) {
+      if (loadedCount < filtered.length) {
+        loadedInfo.style.display = 'inline';
+        loadedInfo.innerHTML = `&nbsp;|&nbsp;נטענו <span class="highlight">${loadedCount}</span> מתוך <span class="highlight">${filtered.length}</span>`;
+      } else {
+        loadedInfo.style.display = 'none';
+      }
+    }
     if (pageFiltered.length === 0) {
       list.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>לא נמצאו תוצאות</h3><p>נסה מילה אחרת או שנה סינון</p></div>`;
       return;
