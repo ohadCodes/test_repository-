@@ -1536,7 +1536,7 @@ function renderFeedbackList() {
   const FOLDER_ID = '1poPxM9l92zhppX13f9gdzS14vz9ZSSPk';
   const ENTRIES_FILENAME = 'tashbetz_entries.json';
   const FORMS_URL = 'https://forms.gle/sGWX4LKuUzSFeSjd6';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxa7Q-w-GuH2IUn-0MWNe-DtTUiKE0nF4c_ZWQ_bnB-hCjRFI3hzmIUt_5DOmV-quh-/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys48yQMlRquU8iIkc6nf3Ke25SZlljV2lf9xezxQZr9c9shgUdGvnJzeoNanHSz-zg/exec';
   let gAccessToken = localStorage.getItem('g_access_token') || null;
   let gUserEmail = localStorage.getItem('g_user_email') || null;
   let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
@@ -1878,6 +1878,26 @@ function logout() {
   document.getElementById('feedbackModal').addEventListener('click', function(e) {
     if (e.target === this) closeFeedbackModal();
   });
+
+  // טעינה ציבורית מ-Apps Script למשתמשים אנונימיים
+  async function loadPublicEntries() {
+    if (entries.length > 0) return;
+    try {
+      const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        entries = data;
+        saveDataLocal(entries);
+        renderCards('');
+        showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
+      }
+    } catch(e) {
+      console.warn('Public load failed:', e);
+    }
+  }
+
+  if (!isOwner) loadPublicEntries();
 
   // Register service worker for PWA
   if ('serviceWorker' in navigator) {
