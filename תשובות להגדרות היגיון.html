@@ -693,7 +693,7 @@
       <button class="filter-btn" id="filter-no-explanation" onclick="setFilter('no-explanation')" style="display:none;">💡 ללא הסבר</button>
       <button class="filter-btn" id="filter-no-solution" onclick="setFilter('no-solution')" style="display:none;">❓ ללא תשובה</button>
       <button class="filter-btn" id="suggest-btn" onclick="openSuggestForm()" style="margin-right:auto;background:rgba(6,214,160,0.1);border-color:rgba(6,214,160,0.3);color:var(--success);">📝 הצעת הגדרה</button>
-      <button class="feedback-btn" onclick="openFeedbackModal()">🐛 תקלה / שיפור</button>
+      <button class="feedback-btn" id="feedback-btn" onclick="openFeedbackModal()">🐛 תקלה / שיפור</button>
     </div>
     <div class="results-info" id="resultsInfo" style="display:none;"></div>
     <div id="cardsList"></div>
@@ -1646,6 +1646,8 @@
     // הצג/הסתר כפתור "הצעת הגדרה"
     const suggestBtn = document.getElementById('suggest-btn');
     if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
+    const feedbackBtn = document.getElementById('feedback-btn');
+    if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'flex';
     // עדכן כפילויות
     updateFilterButtons();
   }
