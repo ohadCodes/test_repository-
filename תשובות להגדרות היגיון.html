@@ -907,7 +907,7 @@
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(`view-${tab}`).classList.add('active');
     document.getElementById('searchWrap').style.display = tab === 'search' ? 'flex' : 'none';
-    if (tab === 'search') renderCards(currentQuery);
+    if (tab === 'search') { entriesPage = 0; renderCardsPaged(currentQuery); }
     if (tab === 'delete') renderDeleteList();
     if (tab === 'feedback') renderFeedbackList();
   }
@@ -918,7 +918,7 @@
   document.getElementById('searchInput').addEventListener('input', function() {
     currentQuery = this.value.trim();
     document.getElementById('clearSearch').style.display = currentQuery ? 'block' : 'none';
-    renderCards(currentQuery);
+    renderCardsPaged(currentQuery);
   });
 
   function onSearchFieldChange() {
@@ -926,14 +926,16 @@
     const placeholders = { definition: 'חפש הגדרה...', solution: 'חפש פתרון...', explanation: 'חפש רמז...' };
     document.getElementById('searchInput').placeholder = placeholders[searchField];
     currentQuery = document.getElementById('searchInput').value.trim();
-    renderCards(currentQuery);
+    entriesPage = 0;
+    renderCardsPaged(currentQuery);
   }
 
   function clearSearch() {
     document.getElementById('searchInput').value = '';
     currentQuery = '';
     document.getElementById('clearSearch').style.display = 'none';
-    renderCards('');
+    entriesPage = 0;
+    renderCardsPaged('');
     document.getElementById('searchInput').focus();
   }
 
@@ -958,7 +960,7 @@
     currentFilter = filter;
     document.querySelectorAll('.filter-btn[id^="filter"]').forEach(b => b.classList.remove('active'));
     document.getElementById(`filter-${filter}`).classList.add('active');
-    renderCards(currentQuery);
+    renderCardsPaged(currentQuery);
   }
 
   function updateFilterButtons() {
@@ -988,15 +990,12 @@
     return a.definition.localeCompare(b.definition, 'he');
   }
 
-  function renderCards(query) {
+  function renderCardsPaged(query) {
     updateFilterButtons();
     const list = document.getElementById('cardsList');
     const empty = document.getElementById('emptyState');
     const info = document.getElementById('resultsInfo');
-
     const q = normalize(query);
-
-    // Apply search filter
     let filtered = q
       ? entries.filter(e => {
           if (searchField === 'solution') return normalize(e.solution || '').includes(q);
@@ -1004,19 +1003,14 @@
           return normalize(e.definition).includes(q);
         })
       : [...entries];
-
-    // Apply category filter
     if (currentFilter === 'no-explanation') {
       filtered = filtered.filter(e => !e.explanation || !e.explanation.trim());
     } else if (currentFilter === 'no-solution') {
       filtered = filtered.filter(e => !e.solution || !e.solution.trim());
     }
-
-    // Apply sort
     if (sortAZ) {
       filtered = filtered.slice().sort(hebrewSort);
     }
-
     if (entries.length === 0) {
       list.innerHTML = '';
       empty.style.display = 'block';
@@ -1032,9 +1026,7 @@
       }
       return;
     }
-
     empty.style.display = 'none';
-
     const showInfo = q || currentFilter !== 'all';
     if (showInfo) {
       info.style.display = 'block';
@@ -1047,18 +1039,15 @@
     } else {
       info.style.display = 'none';
     }
-
-    if (filtered.length === 0) {
-      list.innerHTML = `
-        <div class="empty-state">
-          <div class="icon">🔍</div>
-          <h3>לא נמצאו תוצאות</h3>
-          <p>נסה מילה אחרת או שנה סינון</p>
-        </div>`;
+    // Pagination
+    const start = 0;
+    const end = (entriesPage + 1) * ENTRIES_PAGE_SIZE;
+    const pageFiltered = filtered.slice(start, end);
+    if (pageFiltered.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>לא נמצאו תוצאות</h3><p>נסה מילה אחרת או שנה סינון</p></div>`;
       return;
     }
-
-    list.innerHTML = filtered.map((e, idx) => `
+    list.innerHTML = pageFiltered.map((e, idx) => `
       <div class="card" style="animation-delay:${Math.min(idx * 0.03, 0.3)}s">
         <div class="card-header">
           <div class="card-definition">${searchField === 'definition' ? highlightText(e.definition, query) : escapeHtml(e.definition)}</div>
@@ -1074,6 +1063,14 @@
         </div>` : ''}
       </div>
     `).join('');
+    if (end < filtered.length) {
+      list.innerHTML += `<div style="text-align:center;margin:20px 0;"><button class="btn" onclick="loadMoreEntries()">טען עוד (${filtered.length - end} נוספים)</button></div>`;
+    }
+  }
+
+  function loadMoreEntries() {
+    entriesPage++;
+    renderCardsPaged(currentQuery);
   }
 
   // ──────────────────────────────────────────────
@@ -1767,7 +1764,8 @@
       if (Array.isArray(data) && data.length > 0) {
         entries = data;
         saveDataLocal(entries);
-        renderCards('');
+        entriesPage = 0;
+        renderCardsPaged('');
         showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
       }
     } catch(e) {
