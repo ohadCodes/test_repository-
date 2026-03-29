@@ -1,3 +1,32 @@
+// ──────────────────────────────────────────────
+// FEEDBACK ADMIN VIEW - LOAD FEEDBACKS
+// ──────────────────────────────────────────────
+function renderFeedbackList() {
+  const list = document.getElementById('feedbackList');
+  list.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">טוען פידבקים...</div>';
+  fetch(APPS_SCRIPT_URL + '?action=getFeedback')
+    .then(res => res.json())
+    .then(data => {
+      if (!data.ok || !Array.isArray(data.feedback)) {
+        list.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינת הפידבקים</div>';
+        return;
+      }
+      if (data.feedback.length === 0) {
+        list.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">לא התקבלו פידבקים</div>';
+        return;
+      }
+      list.innerHTML = data.feedback.map(f => `
+        <div style="background:var(--surface3);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+          <div style="font-size:0.92rem;color:var(--accent2);font-weight:600;">${f.type === 'bug' ? '🐛 תקלה' : '💡 שיפור'}</div>
+          <div style="margin:8px 0 0 0;white-space:pre-line;">${escapeHtml(f.text)}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;">${f.date ? f.date : ''}</div>
+        </div>
+      `).join('');
+    })
+    .catch(() => {
+      list.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינת הפידבקים</div>';
+    });
+}
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -928,7 +957,7 @@
       return filtered;
     }
 
-    // הפעל טעינה אוטומטית כל 10 שניות
+    // הפעל טעינה אוטומטית כל 3 שניות
     setInterval(autoLoadEntries, 3000); // טעינה אוטומטית כל 3 שניות, גם כשהחלון לא בפוקוס
 
   // ──────────────────────────────────────────────
