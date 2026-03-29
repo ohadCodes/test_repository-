@@ -1763,33 +1763,6 @@
   }
 
   // ──────────────────────────────────────────────
-  updateStats();
-  document.getElementById('searchWrap').style.display = 'flex';
-  renderCards('');
-
-  // טעינה ציבורית מ-Apps Script למשתמשים אנונימיים
-  async function loadPublicEntries() {
-    if (entries.length > 0) return; // יש נתונים מקומיים
-    try {
-      showToast('⏳ טוען הגדרות...', '');
-      const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
-      if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        entries = data;
-        saveDataLocal(entries);
-        entriesPage = 0;
-        renderCardsPaged('');
-        showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
-      }
-    } catch(e) {
-      console.warn('Public load failed:', e);
-    }
-  }
-
-  if (!isOwner) loadPublicEntries();
-
-  // ──────────────────────────────────────────────
   // FEEDBACK MODAL
   // ──────────────────────────────────────────────
   let feedbackType = 'bug';
