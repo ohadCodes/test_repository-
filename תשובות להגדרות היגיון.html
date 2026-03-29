@@ -1718,26 +1718,6 @@
     selectedForDelete.clear();
     renderDeleteList();
   }
-function doGet(e) {
-  const action = e && e.parameter && e.parameter.action;
-
-  if (action === 'getEntries') {
-    try {
-      const folder = DriveApp.getFolderById('1poPxM9l92zhppX13f9gdzS14vz9ZSSPk');
-      const files = folder.getFilesByName('tashbetz_entries.json');
-      if (!files.hasNext()) {
-        return ContentService.createTextOutput('[]')
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      const content = files.next().getBlob().getDataAsString();
-      return ContentService.createTextOutput(content)
-        .setMimeType(ContentService.MimeType.JSON);
-    } catch(e) {
-      return ContentService.createTextOutput('[]')
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-}
   function confirmDeleteSelected() {
     if (selectedForDelete.size === 0) return;
     const count = selectedForDelete.size;
