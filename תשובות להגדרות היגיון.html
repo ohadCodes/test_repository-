@@ -795,7 +795,16 @@
   <div class="view" id="view-feedback">
     <div class="form-section">
       <h3>📣 פידבקים מהמשתמשים</h3>
-      <div id="feedbackList"></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="flex:1;">
+          <div style="font-size:0.8rem;font-weight:600;color:#f43f5e;margin-bottom:10px;text-align:center;padding:6px;background:rgba(244,63,94,0.08);border-radius:8px;border:1px solid rgba(244,63,94,0.2);">🐛 תקלות</div>
+          <div id="feedbackListBugs"></div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:0.8rem;font-weight:600;color:#a78bfa;margin-bottom:10px;text-align:center;padding:6px;background:rgba(139,92,246,0.08);border-radius:8px;border:1px solid rgba(139,92,246,0.2);">💡 שיפורים</div>
+          <div id="feedbackListImprovements"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -895,42 +904,6 @@
   let searchField = 'definition';
 
   const ENTRIES_PAGE_SIZE = 50; // שנה כאן את הכמות לטעינה בכל עמוד
-
-    // טעינה אוטומטית של הגדרות כל 10 שניות
-    let entriesPage = 0;
-    function autoLoadEntries() {
-      // אם יש עוד הגדרות לטעון, טען עוד עמוד
-      const totalFiltered = getCurrentFilteredEntries().length;
-      const maxPages = Math.ceil(totalFiltered / ENTRIES_PAGE_SIZE);
-      if (entriesPage + 1 < maxPages) {
-        entriesPage++;
-        renderCardsPaged(currentQuery);
-      }
-    }
-
-    function getCurrentFilteredEntries() {
-      // מחזיר את רשימת ההגדרות המסוננות לפי החיפוש והסינון הנוכחי
-      const q = normalize(currentQuery);
-      let filtered = q
-        ? entries.filter(e => {
-            if (searchField === 'solution') return normalize(e.solution || '').includes(q);
-            if (searchField === 'explanation') return normalize(e.explanation || '').includes(q);
-            return normalize(e.definition).includes(q);
-          })
-        : [...entries];
-      if (currentFilter === 'no-explanation') {
-        filtered = filtered.filter(e => !e.explanation || !e.explanation.trim());
-      } else if (currentFilter === 'no-solution') {
-        filtered = filtered.filter(e => !e.solution || !e.solution.trim());
-      }
-      if (sortAZ) {
-        filtered = filtered.slice().sort(hebrewSort);
-      }
-      return filtered;
-    }
-
-    // הפעל טעינה אוטומטית כל 3 שניות
-    setInterval(autoLoadEntries, 3000); // טעינה אוטומטית כל 3 שניות, גם כשהחלון לא בפוקוס
 
   // ──────────────────────────────────────────────
   // UI
@@ -1851,17 +1824,27 @@ function logout() {
   });
 
   // טעינה ציבורית מ-Apps Script למשתמשים אנונימיים
+  // מציג מהקאש מיד, ומרענן ברקע
   async function loadPublicEntries() {
-    if (entries.length > 0) return;
+    const CACHE_KEY = 'tashbetz_public_cache_ts';
+    const CACHE_TTL = 10 * 60 * 1000; // 10 דקות
+    const lastFetch = parseInt(localStorage.getItem(CACHE_KEY) || '0');
+    const needsRefresh = Date.now() - lastFetch > CACHE_TTL;
+
+    // אם יש נתונים בקאש — הצג אותם מיד
+    if (entries.length > 0 && !needsRefresh) return;
+
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
+        const hadData = entries.length > 0;
         entries = data;
         saveDataLocal(entries);
+        localStorage.setItem(CACHE_KEY, Date.now().toString());
         renderCardsPaged('');
-        showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
+        if (!hadData) showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
       }
     } catch(e) {
       console.warn('Public load failed:', e);
@@ -1874,26 +1857,38 @@ function logout() {
   // FEEDBACK ADMIN
   // ──────────────────────────────────────────────
   async function renderFeedbackList() {
-    const list = document.getElementById('feedbackList');
-    if (!list) return;
-    list.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען...</div>';
+    const bugsEl = document.getElementById('feedbackListBugs');
+    const improvEl = document.getElementById('feedbackListImprovements');
+    if (!bugsEl || !improvEl) return;
+    const loading = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:16px;">⏳ טוען...</div>';
+    bugsEl.innerHTML = loading;
+    improvEl.innerHTML = loading;
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?action=getFeedback');
       const data = await res.json();
+      const empty = '<div style="color:var(--text-dim);font-size:0.82rem;text-align:center;padding:16px;">אין פידבקים</div>';
       if (!Array.isArray(data) || data.length === 0) {
-        list.innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="icon">📭</div><h3>אין פידבק עדיין</h3></div>';
+        bugsEl.innerHTML = empty;
+        improvEl.innerHTML = empty;
         return;
       }
-      list.innerHTML = data.map((f, i) => `
-        <div class="feedback-card" id="fc-${i}">
-          <button class="feedback-card-del" onclick="deleteFeedbackItem(${i})" title="מחק">🗑️</button>
-          <span class="feedback-card-type ${f.type === 'bug' ? 'bug' : 'improve'}">${f.type === 'bug' ? '🐛 תקלה' : '💡 הצעת שיפור'}</span>
+      const bugs = data.filter((f, i) => ({ ...f, _i: i })).map((f, i) => ({ ...f, _i: i })).filter(f => f.type === 'bug');
+      const improvements = data.filter((f, i) => ({ ...f, _i: i })).map((f, i) => ({ ...f, _i: i })).filter(f => f.type !== 'bug');
+      // re-index with original indices
+      const bugsWithIdx = data.map((f,i) => ({...f,_i:i})).filter(f => f.type === 'bug');
+      const imprWithIdx = data.map((f,i) => ({...f,_i:i})).filter(f => f.type !== 'bug');
+      const renderCard = (f) => `
+        <div class="feedback-card" id="fc-${f._i}">
+          <button class="feedback-card-del" onclick="deleteFeedbackItem(${f._i})" title="מחק">🗑️</button>
           <div class="feedback-card-text">${escapeHtml(f.text)}</div>
           <div class="feedback-card-date">${new Date(f.createdAt).toLocaleString('he-IL')}</div>
-        </div>
-      `).join('');
+        </div>`;
+      bugsEl.innerHTML = bugsWithIdx.length ? bugsWithIdx.map(renderCard).join('') : empty;
+      improvEl.innerHTML = imprWithIdx.length ? imprWithIdx.map(renderCard).join('') : empty;
     } catch(e) {
-      list.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינה</div>';
+      const err = '<div style="color:var(--danger);font-size:0.85rem;text-align:center;padding:16px;">שגיאה בטעינה</div>';
+      bugsEl.innerHTML = err;
+      improvEl.innerHTML = err;
     }
   }
 
