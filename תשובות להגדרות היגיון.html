@@ -1832,7 +1832,7 @@ function logout() {
 
   // טעינה ציבורית מ-Apps Script למשתמשים אנונימיים
   async function loadPublicEntries() {
-    const CACHE_TTL = 10 * 60 * 1000; // 10 דקות
+    const CACHE_TTL = 1000;
     const CACHE_TS_KEY = 'tashbetz_public_cache_ts';
     const lastFetch = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
     const needsRefresh = Date.now() - lastFetch > CACHE_TTL;
