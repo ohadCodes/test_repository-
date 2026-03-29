@@ -610,21 +610,6 @@
     }
 
     /* FEEDBACK */
-    .feedback-btn {
-      background: rgba(139,92,246,0.1);
-      border: 1px solid rgba(139,92,246,0.3);
-      color: #a78bfa;
-      font-family: 'Rubik', sans-serif;
-      font-size: 0.78rem;
-      font-weight: 500;
-      padding: 6px 13px;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .feedback-btn:hover { background: rgba(139,92,246,0.18); border-color: rgba(139,92,246,0.5); }
-
     .feedback-type-row {
       display: flex;
       gap: 8px;
@@ -869,10 +854,11 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeFeedbackModal()">ביטול</button>
-      <button class="btn btn-primary" onclick="submitFeedback()" style="flex:2;">שלח</button>
+      <button class="btn btn-primary" onclick="submitFeedback()" style="flex:2;">שלח ופתח מייל</button>
     </div>
   </div>
 </div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1460,6 +1446,7 @@
   const FOLDER_ID = '1poPxM9l92zhppX13f9gdzS14vz9ZSSPk';
   const ENTRIES_FILENAME = 'tashbetz_entries.json';
   const FORMS_URL = 'https://forms.gle/sGWX4LKuUzSFeSjd6';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxsWlO9iHcXHowa1fRgovW1fPhXOFzbbAniBmVAetsPn6weicvfLYRg4bmaeKUwK3rl/exec';
 
   let gAccessToken = localStorage.getItem('g_access_token') || null;
   let gUserEmail = localStorage.getItem('g_user_email') || null;
@@ -1647,7 +1634,7 @@
     const suggestBtn = document.getElementById('suggest-btn');
     if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
     const feedbackBtn = document.getElementById('feedback-btn');
-    if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'flex';
+    if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
     // עדכן כפילויות
     updateFilterButtons();
   }
@@ -1747,10 +1734,26 @@
   document.getElementById('searchWrap').style.display = 'flex';
   renderCards('');
 
-  // Register service worker for PWA
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  // טעינה ציבורית מ-Apps Script למשתמשים אנונימיים
+  async function loadPublicEntries() {
+    if (entries.length > 0) return; // יש נתונים מקומיים
+    try {
+      showToast('⏳ טוען הגדרות...', '');
+      const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        entries = data;
+        saveDataLocal(entries);
+        renderCards('');
+        showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
+      }
+    } catch(e) {
+      console.warn('Public load failed:', e);
+    }
   }
+
+  if (!isOwner) loadPublicEntries();
 
   // ──────────────────────────────────────────────
   // FEEDBACK MODAL
@@ -1780,14 +1783,19 @@
     const typeLabel = feedbackType === 'bug' ? 'תקלה' : 'הצעת שיפור';
     const subject = encodeURIComponent('[תשבץ היגיון] ' + typeLabel);
     const body = encodeURIComponent('סוג: ' + typeLabel + '\n\n' + text);
-    window.open('mailto:' + OWNER_EMAIL + '?subject=' + subject + '&body=' + body, '_blank');
     closeFeedbackModal();
-    showToast('תודה! נפתחה אפליקציית המייל', 'success');
+    window.open('mailto:012ohad@gmail.com?subject=' + subject + '&body=' + body, '_blank');
   }
 
   document.getElementById('feedbackModal').addEventListener('click', function(e) {
     if (e.target === this) closeFeedbackModal();
   });
+
+  // Register service worker for PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
 </script>
 </body>
 </html>
