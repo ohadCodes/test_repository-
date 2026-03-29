@@ -929,7 +929,7 @@
     }
 
     // הפעל טעינה אוטומטית כל 10 שניות
-    setInterval(autoLoadEntries, 10000);
+    setInterval(autoLoadEntries, 3000); // טעינה אוטומטית כל 3 שניות, גם כשהחלון לא בפוקוס
 
   // ──────────────────────────────────────────────
   // UI
@@ -1066,29 +1066,22 @@
       return;
     }
     empty.style.display = 'none';
-    const showInfo = q || currentFilter !== 'all';
-    if (showInfo) {
-      info.style.display = 'block';
-      let infoText = `נמצאו <span class="highlight">${filtered.length}</span> הגדרות`;
-      if (currentFilter === 'no-explanation') infoText += ' ללא הסבר';
-      if (currentFilter === 'no-solution') infoText += ' ללא תשובה';
-      if (q) infoText += ` עבור "<b>${escapeHtml(query)}</b>"`;
-      infoText += ` מתוך ${entries.length}`;
-      info.innerHTML = infoText;
-    } else {
-      info.style.display = 'none';
-    }
-    // Pagination
+
+    // הצגת טקסט "מוצגים X הגדרות מתוך: Y"
     const start = 0;
     const end = (entriesPage + 1) * ENTRIES_PAGE_SIZE;
     const pageFiltered = filtered.slice(start, end);
-    // הצגת כמות טעינה בפועל
-    const loadedCount = Math.min(end, filtered.length);
+    const shownCount = pageFiltered.length;
+    const totalFiltered = filtered.length;
+    info.style.display = 'block';
+    info.innerHTML = `מוצגים <span class="highlight">${shownCount}</span> הגדרות מתוך: <span class="highlight">${totalFiltered}</span>`;
+
+    // הצגת כמות טעינה בפועל (אם צריך)
     const loadedInfo = document.getElementById('loadedInfo');
     if (loadedInfo) {
-      if (loadedCount < filtered.length) {
+      if (shownCount < totalFiltered) {
         loadedInfo.style.display = 'inline';
-        loadedInfo.innerHTML = `&nbsp;|&nbsp;נטענו <span class="highlight">${loadedCount}</span> מתוך <span class="highlight">${filtered.length}</span>`;
+        loadedInfo.innerHTML = `&nbsp;|&nbsp;נטענו <span class="highlight">${shownCount}</span> מתוך <span class="highlight">${totalFiltered}</span>`;
       } else {
         loadedInfo.style.display = 'none';
       }
