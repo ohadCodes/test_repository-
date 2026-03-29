@@ -895,6 +895,42 @@
 
   const ENTRIES_PAGE_SIZE = 50; // שנה כאן את הכמות לטעינה בכל עמוד
 
+    // טעינה אוטומטית של הגדרות כל 10 שניות
+    let entriesPage = 0;
+    function autoLoadEntries() {
+      // אם יש עוד הגדרות לטעון, טען עוד עמוד
+      const totalFiltered = getCurrentFilteredEntries().length;
+      const maxPages = Math.ceil(totalFiltered / ENTRIES_PAGE_SIZE);
+      if (entriesPage + 1 < maxPages) {
+        entriesPage++;
+        renderCardsPaged(currentQuery);
+      }
+    }
+
+    function getCurrentFilteredEntries() {
+      // מחזיר את רשימת ההגדרות המסוננות לפי החיפוש והסינון הנוכחי
+      const q = normalize(currentQuery);
+      let filtered = q
+        ? entries.filter(e => {
+            if (searchField === 'solution') return normalize(e.solution || '').includes(q);
+            if (searchField === 'explanation') return normalize(e.explanation || '').includes(q);
+            return normalize(e.definition).includes(q);
+          })
+        : [...entries];
+      if (currentFilter === 'no-explanation') {
+        filtered = filtered.filter(e => !e.explanation || !e.explanation.trim());
+      } else if (currentFilter === 'no-solution') {
+        filtered = filtered.filter(e => !e.solution || !e.solution.trim());
+      }
+      if (sortAZ) {
+        filtered = filtered.slice().sort(hebrewSort);
+      }
+      return filtered;
+    }
+
+    // הפעל טעינה אוטומטית כל 10 שניות
+    setInterval(autoLoadEntries, 10000);
+
   // ──────────────────────────────────────────────
   // UI
   // ──────────────────────────────────────────────
