@@ -1777,9 +1777,7 @@
     if (!text) { showToast('נא לכתוב תיאור', 'error'); return; }
     const typeLabel = feedbackType === 'bug' ? 'תקלה' : 'הצעת שיפור';
     const subject = encodeURIComponent('[תשבץ היגיון] ' + typeLabel);
-    const body = encodeURIComponent('סוג: ' + typeLabel + '
-
-' + text);
+    const body = encodeURIComponent('סוג: ' + typeLabel + '\n\n' + text);
     window.open('mailto:' + OWNER_EMAIL + '?subject=' + subject + '&body=' + body, '_blank');
     closeFeedbackModal();
     showToast('תודה! נפתחה אפליקציית המייל', 'success');
