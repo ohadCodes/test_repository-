@@ -1377,7 +1377,7 @@ function renderFeedbackList() {
 
     saveData(entries);
     closeModal();
-    renderCards(currentQuery);
+    renderCardsPaged(currentQuery);
     showToast('✅ ההגדרה עודכנה', 'success');
   }
 
@@ -1397,7 +1397,7 @@ function renderFeedbackList() {
     entries = entries.filter(x => x.id !== id);
     saveData(entries);
     closeModal();
-    renderCards(currentQuery);
+    renderCardsPaged(currentQuery);
     showToast('🗑️ ההגדרה נמחקה', 'success');
   }
 
@@ -1658,7 +1658,7 @@ function renderFeedbackList() {
           entries = merged;
           saveDataLocal(entries);
           await writeEntriesToDrive(entries);
-          renderCards(currentQuery);
+          renderCardsPaged(currentQuery);
         } else {
           await writeEntriesToDrive(entries);
         }
@@ -1889,7 +1889,7 @@ function logout() {
       if (Array.isArray(data) && data.length > 0) {
         entries = data;
         saveDataLocal(entries);
-        renderCards('');
+        renderCardsPaged('');
         showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
       }
     } catch(e) {
