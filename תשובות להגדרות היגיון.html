@@ -885,16 +885,25 @@
   // ──────────────────────────────────────────────
   // DATA LAYER
   // ──────────────────────────────────────────────
-  const STORAGE_KEY = 'tashbetz_entries';
+  const STORAGE_KEY_PREFIX = 'tashbetz_entries';
+
+  function getStorageKey() {
+    const email = localStorage.getItem('g_user_email');
+    return email ? STORAGE_KEY_PREFIX + '_' + email : STORAGE_KEY_PREFIX + '_public';
+  }
 
   function loadData() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    try { return JSON.parse(localStorage.getItem(getStorageKey())) || []; }
     catch { return []; }
   }
 
   function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(getStorageKey(), JSON.stringify(data));
     updateStats();
+    if (gAccessToken && isOwner && !isSyncing && gEntriesFileId) {
+      clearTimeout(saveData._timer);
+      saveData._timer = setTimeout(() => writeEntriesToDrive(data), 2000);
+    }
   }
 
   let entries = loadData();
@@ -1529,6 +1538,12 @@
         updateSyncBtn('connected');
         showToast('✅ מחובר כמנהל', 'success');
         updateOwnerUI();
+        // טען נתונים מהקאש האישי מיד
+        const cached = loadData();
+        if (cached.length > 0) {
+          entries = cached;
+          renderCardsPaged('');
+        }
         await syncWithDrive();
       }
     });
@@ -1642,17 +1657,8 @@
   }
 
   function saveDataLocal(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(getStorageKey(), JSON.stringify(data));
     updateStats();
-  }
-
-  function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    updateStats();
-    if (gAccessToken && isOwner && !isSyncing && gEntriesFileId) {
-      clearTimeout(saveData._timer);
-      saveData._timer = setTimeout(() => writeEntriesToDrive(data), 2000);
-    }
   }
 
   function updateOwnerUI() {
@@ -1825,14 +1831,13 @@ function logout() {
   });
 
   // טעינה ציבורית מ-Apps Script למשתמשים אנונימיים
-  // מציג מהקאש מיד, ומרענן ברקע
   async function loadPublicEntries() {
-    const CACHE_KEY = 'tashbetz_public_cache_ts';
     const CACHE_TTL = 10 * 60 * 1000; // 10 דקות
-    const lastFetch = parseInt(localStorage.getItem(CACHE_KEY) || '0');
+    const CACHE_TS_KEY = 'tashbetz_public_cache_ts';
+    const lastFetch = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
     const needsRefresh = Date.now() - lastFetch > CACHE_TTL;
 
-    // אם יש נתונים בקאש — הצג אותם מיד
+    // אם יש קאש עדכני — לא צריך לטעון
     if (entries.length > 0 && !needsRefresh) return;
 
     try {
@@ -1843,7 +1848,7 @@ function logout() {
         const hadData = entries.length > 0;
         entries = data;
         saveDataLocal(entries);
-        localStorage.setItem(CACHE_KEY, Date.now().toString());
+        localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
         renderCardsPaged('');
         if (!hadData) showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
       }
