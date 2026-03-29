@@ -1832,25 +1832,30 @@ function logout() {
 
   // טעינה ציבורית מ-Apps Script למשתמשים אנונימיים
   async function loadPublicEntries() {
-    const CACHE_TTL = 1000;
-    const CACHE_TS_KEY = 'tashbetz_public_cache_ts';
-    const lastFetch = parseInt(localStorage.getItem(CACHE_TS_KEY) || '0');
-    const needsRefresh = Date.now() - lastFetch > CACHE_TTL;
-
-    // אם יש קאש עדכני — לא צריך לטעון
-    if (entries.length > 0 && !needsRefresh) return;
-
+    // אם יש כבר נתונים בזיכרון (מ-localStorage) — הצג מיד, רענן ברקע בשקט
+    if (entries.length > 0) {
+      // ריענון שקט ברקע — לא מציג toast, לא מפריע למשתמש
+      fetch(APPS_SCRIPT_URL + '?action=getEntries')
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            entries = data;
+            saveDataLocal(entries);
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+    // טעינה ראשונה — אין נתונים בכלל
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        const hadData = entries.length > 0;
         entries = data;
         saveDataLocal(entries);
-        localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
         renderCardsPaged('');
-        if (!hadData) showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
+        showToast('✅ נטענו ' + entries.length + ' הגדרות', 'success');
       }
     } catch(e) {
       console.warn('Public load failed:', e);
