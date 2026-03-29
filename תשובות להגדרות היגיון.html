@@ -789,6 +789,14 @@
     </div>
   </div>
 
+  <!-- FEEDBACK ADMIN VIEW -->
+  <div class="view" id="view-feedback">
+    <div class="form-section">
+      <h3>📣 פידבקים מהמשתמשים</h3>
+      <div id="feedbackList"></div>
+    </div>
+  </div>
+
 
 </main>
 
@@ -892,14 +900,16 @@
   }
 
   function switchTab(tab) {
+    const tabNames = ['search','add','import','dupes','delete','feedback','approvals'];
     document.querySelectorAll('.tab-btn').forEach((b, i) => {
-      b.classList.toggle('active', ['search','add','import','dupes','delete','approvals'][i] === tab);
+      b.classList.toggle('active', tabNames[i] === tab);
     });
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(`view-${tab}`).classList.add('active');
     document.getElementById('searchWrap').style.display = tab === 'search' ? 'flex' : 'none';
     if (tab === 'search') renderCards(currentQuery);
     if (tab === 'delete') renderDeleteList();
+    if (tab === 'feedback') renderFeedbackList();
   }
 
   // ──────────────────────────────────────────────
@@ -1179,7 +1189,7 @@
 
   function importFromPaste() {
     const text = document.getElementById('pasteArea').value;
-    if (!text.trim()) { showToast('אין טקסט להייבא', 'error'); return; }
+    if (!text.trim()) { showToast('אין טקסט Heidi', 'error'); return; }
     processImportText(text);
     document.getElementById('pasteArea').value = '';
   }
@@ -1645,6 +1655,9 @@
     if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
     const feedbackBtn = document.getElementById('feedback-btn');
     if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
+    // הצג טאב פידבק למנהל
+    const tabFeedback = document.getElementById('tab-feedback');
+    if (tabFeedback) tabFeedback.style.display = isOwner ? 'inline-block' : 'none';
     // עדכן כפילויות
     updateFilterButtons();
   }
@@ -1787,14 +1800,20 @@
     document.getElementById('ftype-improve').classList.toggle('selected', type === 'improve');
   }
 
+  // שליחת פידבק ל-Apps Script
   function submitFeedback() {
     const text = document.getElementById('feedback-text').value.trim();
     if (!text) { showToast('נא לכתוב תיאור', 'error'); return; }
-    const typeLabel = feedbackType === 'bug' ? 'תקלה' : 'הצעת שיפור';
-    const subject = encodeURIComponent('[תשבץ היגיון] ' + typeLabel);
-    const body = encodeURIComponent('סוג: ' + typeLabel + '\n\n' + text);
+    const type = feedbackType;
     closeFeedbackModal();
-    window.open('mailto:012ohad@gmail.com?subject=' + subject + '&body=' + body, '_blank');
+    showToast('שולח פידבק...', '');
+    fetch(APPS_SCRIPT_URL + '?action=submitFeedback&type=' + encodeURIComponent(type) + '&text=' + encodeURIComponent(text))
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) showToast('✅ הפידבק התקבל, תודה!', 'success');
+        else showToast('שגיאה בשליחת הפידבק', 'error');
+      })
+      .catch(() => showToast('שגיאה בשליחת הפידבק', 'error'));
   }
 
   document.getElementById('feedbackModal').addEventListener('click', function(e) {
