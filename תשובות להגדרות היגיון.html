@@ -1,1674 +1,298 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <link rel="icon" type="image/png" href="icon.png">
-  <link rel="apple-touch-icon" href="icon.png">
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#1a1f2e" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="תשובות להגדרות היגיון" />
-  <link rel="manifest" href="manifest.json" />
-  <title>תשובות להגדרות היגיון</title>
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@400;700;900&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #0f172a; --card-bg: #1e293b; --primary: #38bdf8; --secondary: #94a3b8;
-      --text: #f8fafc; --accent: #f472b6; --success: #22c55e;
-    }
-    body {
-      font-family: 'Rubik', sans-serif; background-color: var(--bg); color: var(--text);
-      margin: 0; padding: 0; line-height: 1.6; overflow-x: hidden;
-    }
-    .spinner {
-        border: 4px solid rgba(255, 255, 255, 0.1);
-        border-left-color: var(--primary) !important;
-        width: 45px; height: 45px; border-radius: 50%;
-        animation: spin 1s linear infinite; display: inline-block;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #main-content-wrapper { transition: opacity 0.5s ease-in-out; }
-    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-    .search-container { position: sticky; top: 0; background: var(--bg); z-index: 100; padding: 15px 0; }
-    .search-box { position: relative; display: flex; align-items: center; background: var(--card-bg); border-radius: 12px; padding: 5px 15px; border: 1px solid #334155; }
-    .search-box input { background: transparent; border: none; color: white; padding: 12px; width: 100%; font-size: 16px; outline: none; }
-    .card { background: var(--card-bg); border-radius: 16px; padding: 16px; margin-bottom: 16px; border-right: 4px solid var(--primary); }
-    .card-definition { font-weight: 700; font-size: 1.1rem; color: var(--primary); margin-bottom: 8px; }
-    .card-solution { font-family: 'Frank Ruhl Libre', serif; font-size: 1.3rem; font-weight: 900; color: #fff; }
-    .filter-bar { display: flex; gap: 8px; margin-top: 15px; overflow-x: auto; padding-bottom: 5px; }
-    .filter-btn { background: #334155; border: none; color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
-    .filter-btn.active { background: var(--primary); color: #0f172a; font-weight: 600; }
-  </style>
-  <div id="main-content">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מאגר הגדרות היגיון - ניהול ומציאה</title>
+    <style>
+        :root {
+            --primary: #1a237e;
+            --accent: #3949ab;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --success: #2e7d32;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .search-container {
+            max-width: 600px;
+            margin: 10px auto;
+        }
+        input#searchInput, .admin-input {
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: none;
+            font-size: 1.1rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .filter-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .filter-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 6px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .filter-btn.active {
+            background: white;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        /* כפתור ניהול */
+        .admin-trigger {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--primary);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-size: 1.5rem;
+            z-index: 2000;
+        }
+        /* מודאל ניהול */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        .admin-input {
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+        .admin-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-save { background: var(--success); color: white; }
+        .btn-download { background: var(--accent); color: white; }
+        .btn-close { background: #e0e0e0; }
+
+        #main-content {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+        .info-bar { text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 15px; }
+        .card {
+            background: var(--card-bg);
+            margin-bottom: 12px;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-right: 5px solid var(--accent);
+        }
+        .card-definition { font-weight: 600; flex: 2; }
+        .card-solution { color: var(--accent); font-weight: 700; flex: 1; text-align: left; }
+        .highlight { background-color: #fff176; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>חיפוש הגדרות היגיון</h2>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="חיפוש הגדרה או פתרון..." autofocus>
+        <div class="filter-group">
+            <button class="filter-btn active" data-field="definition">לפי הגדרה</button>
+            <button class="filter-btn" data-field="solution">לפי פתרון</button>
+        </div>
+    </div>
+</div>
+
+<div id="main-content">
     <div id="searchInfo" class="info-bar">טוען נתונים...</div>
     <div id="riddleList"></div>
 </div>
-</head>
-<body>
-<main class="container">
-    <div id="loader" style="text-align: center; position: fixed; width: 100%; top: 40%; left: 0; z-index: 9999;">
-        <div class="spinner"></div>
-        <p style="color: var(--primary); margin-top: 15px; font-weight: bold;">טוען את כל ההגדרות...</p>
-    </div>
-    <div id="main-content-wrapper" style="display: none; opacity: 0;">
-        <div class="search-container">
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="חיפוש הגדרה או פתרון..." oninput="handleSearch(this.value)">
-            </div>
-            <div class="filter-bar">
-                <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">הכל</button>
-                <button class="filter-btn" id="filter-no-explanation" onclick="setFilter('no-explanation')">ללא הסבר</button>
-            </div>
+
+<div class="admin-trigger" onclick="toggleModal(true)">⚙️</div>
+
+<div id="adminModal" class="modal">
+    <div class="modal-content">
+        <h3>הוספת הגדרה חדשה</h3>
+        <input type="text" id="newDef" class="admin-input" placeholder="ההגדרה (כולל מספר אותיות)">
+        <input type="text" id="newSol" class="admin-input" placeholder="הפתרון">
+        <textarea id="newExpl" class="admin-input" placeholder="הסבר (אופציונלי)" rows="2"></textarea>
+        <div class="admin-actions">
+            <button class="btn btn-save" onclick="addNewItem()">שמור הגדרה</button>
+            <button class="btn btn-download" onclick="downloadDatabase()">הורד קובץ מעודכן</button>
+            <button class="btn btn-close" onclick="toggleModal(false)">סגור</button>
         </div>
-        <div id="list"></div>
+        <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">* לאחר הוספת הגדרות, הורד את הקובץ והעלה אותו ל-GitHub לעדכון קבוע.</p>
     </div>
-</main>
+</div>
+
 <script>
-  const allData = [    
-    { "definition": "כלי נגינה גדול", "solution": "פסנתר", "explanation": "" },
-    { "definition": "הוא מטפל בחיות", "solution": "וטרינר", "explanation": "" },
-    { "definition": "מקום בו רואים סרטים", "solution": "קולנוע", "explanation": "" },
-    { "definition": "בעל חיים עם חדק", "solution": "פיל", "explanation": "" },
-    { "definition": "היא מפיצה ריח טוב", "solution": "בושם", "explanation": "" },
-    { "definition": "חלק מהראש", "solution": "אוזן", "explanation": "" },
-    { "definition": "הוא שט בים", "solution": "מלח", "explanation": "" },
-    { "definition": "זהירות, זה דליק!", "solution": "בנזין", "explanation": "" },
-    { "definition": "כלי עבודה של צבע", "solution": "מברשת", "explanation": "" },
-    { "definition": "הוא שופט במשחק כדורגל", "solution": "שופט", "explanation": "" },
-    { "definition": "מקום בו יש המון חיות", "solution": "גן חיות", "explanation": "" },
-    { "definition": "בעל חיים שחי במדבר", "solution": "גמל", "explanation": "" },
-    { "definition": "הוא מביא מתנות בחג", "solution": "אליהו", "explanation": "" },
-    { "definition": "חלק מהרגל", "solution": "ברך", "explanation": "" },
-    { "definition": "הוא מציל אנשים בים", "solution": "מציל", "explanation": "" },
-    { "definition": "זהירות, זה מחשמל!", "solution": "זרם", "explanation": "" },
-    { "definition": "כלי נגינה ממתכת", "solution": "חצוצרה", "explanation": "" },
-    { "definition": "הוא מבשל במסעדה", "solution": "טבח", "explanation": "" },
-    { "definition": "מקום בו מתפללים", "solution": "בית כנסת", "explanation": "" },
-    { "definition": "בעל חיים איטי מאוד", "solution": "צב", "explanation": "" },
-    { "definition": "היא נובחת", "solution": "כלב", "explanation": "" },
-    { "definition": "חלק מהיד", "solution": "אצבע", "explanation": "" },
-    { "definition": "הוא רוכב על סוס", "solution": "פרש", "explanation": "" },
-    { "definition": "זהירות, זה גבוה!", "solution": "תהום", "explanation": "" },
-    { "definition": "כלי עבודה של גנן", "solution": "מזמרה", "explanation": "" },
-    { "definition": "הוא טס לחלל", "solution": "אסטרונאוט", "explanation": "" },
-    { "definition": "מקום בו יש המון פרחים", "solution": "גינה", "explanation": "" },
-    { "definition": "בעל חיים שקופץ", "solution": "קנגורו", "explanation": "" },
-    { "definition": "היא מיאו", "solution": "חתול", "explanation": "" },
-    { "definition": "חלק מהפנים", "solution": "אף", "explanation": "" },
-    { "definition": "הוא נוהג באוטובוס", "solution": "נהג", "explanation": "" },
-    { "definition": "זהירות, זה עמוק!", "solution": "בור", "explanation": "" },
-    { "definition": "כלי נגינה קטן", "solution": "מפוחית", "explanation": "" },
-    { "definition": "הוא מכבה שריפות", "solution": "כבאים", "explanation": "" },
-    { "definition": "מקום בו יש המון גלים", "solution": "אוקיינוס", "explanation": "" },
-    { "definition": "בעל חיים עם צוואר ארוך", "solution": "ג'ירף", "explanation": "" },
-    { "definition": "הוא קורא בתורה", "solution": "חזן", "explanation": "" },
-    { "definition": "חלק מהשיער", "solution": "צמה", "explanation": "" },
-    { "definition": "הוא בונה בתים", "solution": "בנאי", "explanation": "" },
-    { "definition": "זהירות, זה דוקר!", "solution": "קוץ", "explanation": "" },
-    { "definition": "אביזר עזר לשמיעה (4)", "solution": "אפרכסת", "explanation": "" },
-    { "definition": "אבן יקרה (4)", "solution": "ברקת", "explanation": "" },
-    { "definition": "אבן יקרה (5)", "solution": "ספיר", "explanation": "" },
-    { "definition": "אבן יקרה (4)", "solution": "ענבר", "explanation": "" },
-    { "definition": "אגף בבית חולים (5)", "solution": "מיון", "explanation": "" },
-    { "definition": "אדום כהה (4)", "solution": "ארגמן", "explanation": "" },
-    { "definition": "אדום כהה (5)", "solution": "שני", "explanation": "" },
-    { "definition": "אדון (3)", "solution": "מר", "explanation": "" },
-    { "definition": "אובדן דרך (4)", "solution": "תעייה", "explanation": "" },
-    { "definition": "אוגר (4)", "solution": "אוסף", "explanation": "" },
-    { "definition": "אוהב אדם (7)", "solution": "פילנתרופ", "explanation": "" },
-    { "definition": "אוהל (4)", "solution": "משכן", "explanation": "" },
-    { "definition": "אוהל גדול (4)", "solution": "חופה", "explanation": "" },
-    { "definition": "אוויר (3)", "solution": "רום", "explanation": "" },
-    { "definition": "אווירון (4)", "solution": "מטוס", "explanation": "" },
-    { "definition": "אווירונאוט (4)", "solution": "טייס", "explanation": "" },
-    { "definition": "אווירונאוטיקה (6)", "solution": "תעופה", "explanation": "" },
-    { "definition": "אווירי (5)", "solution": "שמימי", "explanation": "" },
-    { "definition": "אוויריית (4)", "solution": "להק", "explanation": "" },
-    { "definition": "אוויל (4)", "solution": "טיפש", "explanation": "" },
-    { "definition": "אוולת (4)", "solution": "כסילות", "explanation": "" },
-    { "definition": "אווזה (4)", "solution": "אווז", "explanation": "" },
-    { "definition": "אווי (3)", "solution": "איוו", "explanation": "" },
-    { "definition": "אוון (3)", "solution": "כוח", "explanation": "" },
-    { "definition": "אופטומטריסט (6)", "solution": "אופטיקאי", "explanation": "" },
-    { "definition": "אופנוע (4)", "solution": "קטנוע", "explanation": "" },
-    { "definition": "אופני הרים (3)", "solution": "אופניים", "explanation": "" },
-    { "definition": "אופקי (4)", "solution": "מאוזן", "explanation": "" },
-    { "definition": "אופק (4)", "solution": "רקיע", "explanation": "" },
-    { "definition": "אופרה (4)", "solution": "זמרה", "explanation": "" },
-    { "definition": "אופק (4)", "solution": "שחם", "explanation": "" },
-    { "definition": "אוצר (4)", "solution": "מממון", "explanation": "" },
-    { "definition": "אור (2)", "solution": "זיו", "explanation": "" },
-    { "definition": "אור (3)", "solution": "נגה", "explanation": "" },
-    { "definition": "אור (4)", "solution": "נהרה", "explanation": "" },
-    { "definition": "אורג (4)", "solution": "טוה", "explanation": "" },
-    { "definition": "אורח (4)", "solution": "מבקר", "explanation": "" },
-    { "definition": "אורח (4)", "solution": "נופש", "explanation": "" },
-    { "definition": "אורחה (4)", "solution": "שיירה", "explanation": "" },
-    { "definition": "אורח חיים (4)", "solution": "שגרה", "explanation": "" },
-    { "definition": "אוריגמי (4)", "solution": "קיפול", "explanation": "" },
-    { "definition": "אורייתא (4)", "solution": "תורה", "explanation": "" },
-    { "definition": "אורך (4)", "solution": "משך", "explanation": "" },
-    { "definition": "אורלוגין (4)", "solution": "שעון", "explanation": "" },
-    { "definition": "אורן (4)", "solution": "אצטרובל", "explanation": "" },
-    { "definition": "אורס (4)", "solution": "מארס", "explanation": "" },
-    { "definition": "אורע (4)", "solution": "קרה", "explanation": "" },
-    { "definition": "אורקסטרה (4)", "solution": "תזמורת", "explanation": "" },
-    { "definition": "אורתודוקס (4)", "solution": "חרדי", "explanation": "" },
-    { "definition": "אור (2)", "solution": "טל", "explanation": "" },
-    { "definition": "אור (3)", "solution": "קרן", "explanation": "" },
-    { "definition": "אושר (4)", "solution": "גיל", "explanation": "" },
-    { "definition": "אושר (5)", "solution": "חדווה", "explanation": "" },
-    { "definition": "אושר (4)", "solution": "רון", "explanation": "" },
-    { "definition": "אות (3)", "solution": "סימן", "explanation": "" },
-    { "definition": "אות (2)", "solution": "תו", "explanation": "" },
-    { "definition": "אז (2)", "solution": "עת", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "חבל", "explanation": "" },
-    { "definition": "אזור (4)", "solution": "מחוז", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "נפה", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "פלך", "explanation": "" },
-    { "definition": "אזור (4)", "solution": "שטח", "explanation": "" },
-    { "definition": "אזוטרי (5)", "solution": "נסתר", "explanation": "" },
-    { "definition": "אזמל (4)", "solution": "סכין", "explanation": "" },
-    { "definition": "אזן (4)", "solution": "קשב", "explanation": "" },
-    { "definition": "אזני המן (4)", "solution": "כיסן", "explanation": "" },
-    { "definition": "אזק (4)", "solution": "כבל", "explanation": "" },
-    { "definition": "אזר (4)", "solution": "חגר", "explanation": "" },
-    { "definition": "אזרח (4)", "solution": "תושב", "explanation": "" },
-    { "definition": "אח (2)", "solution": "רע", "explanation": "" },
-    { "definition": "אחדות (4)", "solution": "גיבוש", "explanation": "" },
-    { "definition": "אחו (3)", "solution": "אפר", "explanation": "" },
-    { "definition": "אחוז (4)", "solution": "נתח", "explanation": "" },
-    { "definition": "אחוזה (4)", "solution": "נחלה", "explanation": "" },
-    { "definition": "אחור (4)", "solution": "עורף", "explanation": "" },
-    { "definition": "אחורי (4)", "solution": "גבי", "explanation": "" },
-    { "definition": "אחז (3)", "solution": "לפד", "explanation": "" },
-    { "definition": "אחז (3)", "solution": "תפס", "explanation": "" },
-    { "definition": "אחיינית (4)", "solution": "קרובה", "explanation": "" },
-    { "definition": "אחלה (4)", "solution": "יופי", "explanation": "" },
-    { "definition": "אביזר עזר לשמיעה (4)", "solution": "אפרכסת", "explanation": "" },
-    { "definition": "אבן יקרה (4)", "solution": "ברקת", "explanation": "" },
-    { "definition": "אבן יקרה (5)", "solution": "ספיר", "explanation": "" },
-    { "definition": "אבן יקרה (4)", "solution": "ענבר", "explanation": "" },
-    { "definition": "אגף בבית חולים (5)", "solution": "מיון", "explanation": "" },
-    { "definition": "אדום כהה (4)", "solution": "ארגמן", "explanation": "" },
-    { "definition": "אדום כהה (5)", "solution": "שני", "explanation": "" },
-    { "definition": "אדון (3)", "solution": "מר", "explanation": "" },
-    { "definition": "אובדן דרך (4)", "solution": "תעייה", "explanation": "" },
-    { "definition": "אוגר (4)", "solution": "אוסף", "explanation": "" },
-    { "definition": "אוהב אדם (7)", "solution": "פילנתרופ", "explanation": "" },
-    { "definition": "אוהל (4)", "solution": "משכן", "explanation": "" },
-    { "definition": "אוהל גדול (4)", "solution": "חופה", "explanation": "" },
-    { "definition": "אוויר (3)", "solution": "רום", "explanation": "" },
-    { "definition": "אווירון (4)", "solution": "מטוס", "explanation": "" },
-    { "definition": "אווירונאוט (4)", "solution": "טייס", "explanation": "" },
-    { "definition": "אווירונאוטיקה (6)", "solution": "תעופה", "explanation": "" },
-    { "definition": "אווירי (5)", "solution": "שמימי", "explanation": "" },
-    { "definition": "אוויריית (4)", "solution": "להק", "explanation": "" },
-    { "definition": "אוויל (4)", "solution": "טיפש", "explanation": "" },
-    { "definition": "אוולת (4)", "solution": "כסילות", "explanation": "" },
-    { "definition": "אווזה (4)", "solution": "אווז", "explanation": "" },
-    { "definition": "אווי (3)", "solution": "איוו", "explanation": "" },
-    { "definition": "אוון (3)", "solution": "כוח", "explanation": "" },
-    { "definition": "אופטומטריסט (6)", "solution": "אופטיקאי", "explanation": "" },
-    { "definition": "אופנוע (4)", "solution": "קטנוע", "explanation": "" },
-    { "definition": "אופני הרים (3)", "solution": "אופניים", "explanation": "" },
-    { "definition": "אופקי (4)", "solution": "מאוזן", "explanation": "" },
-    { "definition": "אופק (4)", "solution": "רקיע", "explanation": "" },
-    { "definition": "אופרה (4)", "solution": "זמרה", "explanation": "" },
-    { "definition": "אופק (4)", "solution": "שחם", "explanation": "" },
-    { "definition": "אוצר (4)", "solution": "מממון", "explanation": "" },
-    { "definition": "אור (2)", "solution": "זיו", "explanation": "" },
-    { "definition": "אור (3)", "solution": "נגה", "explanation": "" },
-    { "definition": "אור (4)", "solution": "נהרה", "explanation": "" },
-    { "definition": "אורג (4)", "solution": "טוה", "explanation": "" },
-    { "definition": "אורח (4)", "solution": "מבקר", "explanation": "" },
-    { "definition": "אורח (4)", "solution": "נופש", "explanation": "" },
-    { "definition": "אורחה (4)", "solution": "שיירה", "explanation": "" },
-    { "definition": "אורח חיים (4)", "solution": "שגרה", "explanation": "" },
-    { "definition": "אוריגמי (4)", "solution": "קיפול", "explanation": "" },
-    { "definition": "אורייתא (4)", "solution": "תורה", "explanation": "" },
-    { "definition": "אורך (4)", "solution": "משך", "explanation": "" },
-    { "definition": "אורלוגין (4)", "solution": "שעון", "explanation": "" },
-    { "definition": "אורן (4)", "solution": "אצטרובל", "explanation": "" },
-    { "definition": "אורס (4)", "solution": "מארס", "explanation": "" },
-    { "definition": "אורע (4)", "solution": "קרה", "explanation": "" },
-    { "definition": "אורקסטרה (4)", "solution": "תזמורת", "explanation": "" },
-    { "definition": "אורתודוקס (4)", "solution": "חרדי", "explanation": "" },
-    { "definition": "אור (2)", "solution": "טל", "explanation": "" },
-    { "definition": "אור (3)", "solution": "קרן", "explanation": "" },
-    { "definition": "אושר (4)", "solution": "גיל", "explanation": "" },
-    { "definition": "אושר (5)", "solution": "חדווה", "explanation": "" },
-    { "definition": "אושר (4)", "solution": "רון", "explanation": "" },
-    { "definition": "אות (3)", "solution": "סימן", "explanation": "" },
-    { "definition": "אות (2)", "solution": "תו", "explanation": "" },
-    { "definition": "אז (2)", "solution": "עת", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "חבל", "explanation": "" },
-    { "definition": "אזור (4)", "solution": "מחוז", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "נפה", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "פלך", "explanation": "" },
-    { "definition": "אזור (4)", "solution": "שטח", "explanation": "" },
-    { "definition": "אזוטרי (5)", "solution": "נסתר", "explanation": "" },
-    { "definition": "אזמל (4)", "solution": "סכין", "explanation": "" },
-    { "definition": "אזן (4)", "solution": "קשב", "explanation": "" },
-    { "definition": "אזני המן (4)", "solution": "כיסן", "explanation": "" },
-    { "definition": "אזק (4)", "solution": "כבל", "explanation": "" },
-    { "definition": "אזר (4)", "solution": "חגר", "explanation": "" },
-    { "definition": "אזרח (4)", "solution": "תושב", "explanation": "" },
-    { "definition": "אח (2)", "solution": "רע", "explanation": "" },
-    { "definition": "אחדות (4)", "solution": "גיבוש", "explanation": "" },
-    { "definition": "אחו (3)", "solution": "אפר", "explanation": "" },
-    { "definition": "אחוז (4)", "solution": "נתח", "explanation": "" },
-    { "definition": "אחוזה (4)", "solution": "נחלה", "explanation": "" },
-    { "definition": "אחור (4)", "solution": "עורף", "explanation": "" },
-    { "definition": "אחורי (4)", "solution": "גבי", "explanation": "" },
-    { "definition": "אחז (3)", "solution": "לפד", "explanation": "" },
-    { "definition": "אחז (3)", "solution": "תפס", "explanation": "" },
-    { "definition": "אחיינית (4)", "solution": "קרובה", "explanation": "" },
-    { "definition": "אחלה (4)", "solution": "יופי", "explanation": "" },
-    { "definition": "אביזר עזר לשמיעה (4)", "solution": "אפרכסת", "explanation": "" },
-    { "definition": "אבן יקרה (4)", "solution": "ברקת", "explanation": "" },
-    { "definition": "אבן יקרה (5)", "solution": "ספיר", "explanation": "" },
-    { "definition": "אבן יקרה (4)", "solution": "ענבר", "explanation": "" },
-    { "definition": "אגף בבית חולים (5)", "solution": "מיון", "explanation": "" },
-    { "definition": "אדום כהה (4)", "solution": "ארגמן", "explanation": "" },
-    { "definition": "אדום כהה (5)", "solution": "שני", "explanation": "" },
-    { "definition": "אדון (3)", "solution": "מר", "explanation": "" },
-    { "definition": "אובדן דרך (4)", "solution": "תעייה", "explanation": "" },
-    { "definition": "אוגר (4)", "solution": "אוסף", "explanation": "" },
-    { "definition": "אוהב אדם (7)", "solution": "פילנתרופ", "explanation": "" },
-    { "definition": "אוהל (4)", "solution": "משכן", "explanation": "" },
-    { "definition": "אוהל גדול (4)", "solution": "חופה", "explanation": "" },
-    { "definition": "אוויר (3)", "solution": "רום", "explanation": "" },
-    { "definition": "אווירון (4)", "solution": "מטוס", "explanation": "" },
-    { "definition": "אווירונאוט (4)", "solution": "טייס", "explanation": "" },
-    { "definition": "אווירונאוטיקה (6)", "solution": "תעופה", "explanation": "" },
-    { "definition": "אווירי (5)", "solution": "שמימי", "explanation": "" },
-    { "definition": "אוויריית (4)", "solution": "להק", "explanation": "" },
-    { "definition": "אוויל (4)", "solution": "טיפש", "explanation": "" },
-    { "definition": "אוולת (4)", "solution": "כסילות", "explanation": "" },
-    { "definition": "אווזה (4)", "solution": "אווז", "explanation": "" },
-    { "definition": "אווי (3)", "solution": "איוו", "explanation": "" },
-    { "definition": "אוון (3)", "solution": "כוח", "explanation": "" },
-    { "definition": "אופטומטריסט (6)", "solution": "אופטיקאי", "explanation": "" },
-    { "definition": "אופנוע (4)", "solution": "קטנוע", "explanation": "" },
-    { "definition": "אופני הרים (3)", "solution": "אופניים", "explanation": "" },
-    { "definition": "אופקי (4)", "solution": "מאוזן", "explanation": "" },
-    { "definition": "אופק (4)", "solution": "רקיע", "explanation": "" },
-    { "definition": "אופרה (4)", "solution": "זמרה", "explanation": "" },
-    { "definition": "אופק (4)", "solution": "שחם", "explanation": "" },
-    { "definition": "אוצר (4)", "solution": "מממון", "explanation": "" },
-    { "definition": "אור (2)", "solution": "זיו", "explanation": "" },
-    { "definition": "אור (3)", "solution": "נגה", "explanation": "" },
-    { "definition": "אור (4)", "solution": "נהרה", "explanation": "" },
-    { "definition": "אורג (4)", "solution": "טוה", "explanation": "" },
-    { "definition": "אורח (4)", "solution": "מבקר", "explanation": "" },
-    { "definition": "אורח (4)", "solution": "נופש", "explanation": "" },
-    { "definition": "אורחה (4)", "solution": "שיירה", "explanation": "" },
-    { "definition": "אורח חיים (4)", "solution": "שגרה", "explanation": "" },
-    { "definition": "אוריגמי (4)", "solution": "קיפול", "explanation": "" },
-    { "definition": "אורייתא (4)", "solution": "תורה", "explanation": "" },
-    { "definition": "אורך (4)", "solution": "משך", "explanation": "" },
-    { "definition": "אורלוגין (4)", "solution": "שעון", "explanation": "" },
-    { "definition": "אורן (4)", "solution": "אצטרובל", "explanation": "" },
-    { "definition": "אורס (4)", "solution": "מארס", "explanation": "" },
-    { "definition": "אורע (4)", "solution": "קרה", "explanation": "" },
-    { "definition": "אורקסטרה (4)", "solution": "תזמורת", "explanation": "" },
-    { "definition": "אורתודוקס (4)", "solution": "חרדי", "explanation": "" },
-    { "definition": "אור (2)", "solution": "טל", "explanation": "" },
-    { "definition": "אור (3)", "solution": "קרן", "explanation": "" },
-    { "definition": "אושר (4)", "solution": "גיל", "explanation": "" },
-    { "definition": "אושר (5)", "solution": "חדווה", "explanation": "" },
-    { "definition": "אושר (4)", "solution": "רון", "explanation": "" },
-    { "definition": "אות (3)", "solution": "סימן", "explanation": "" },
-    { "definition": "אות (2)", "solution": "תו", "explanation": "" },
-    { "definition": "אז (2)", "solution": "עת", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "חבל", "explanation": "" },
-    { "definition": "אזור (4)", "solution": "מחוז", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "נפה", "explanation": "" },
-    { "definition": "אזור (3)", "solution": "פלך", "explanation": "" },
-    { "definition": "אזור (4)", "solution": "שטח", "explanation": "" },
-    { "definition": "אזוטרי (5)", "solution": "נסתר", "explanation": "" },
-    { "definition": "אזמל (4)", "solution": "סכין", "explanation": "" },
-    { "definition": "אזן (4)", "solution": "קשב", "explanation": "" },
-    { "definition": "אזני המן (4)", "solution": "כיסן", "explanation": "" },
-    { "definition": "אזק (4)", "solution": "כבל", "explanation": "" },
-    { "definition": "אזר (4)", "solution": "חגר", "explanation": "" },
-    { "definition": "אזרח (4)", "solution": "תושב", "explanation": "" },
-    { "definition": "אח (2)", "solution": "רע", "explanation": "" },
-    { "definition": "אחדות (4)", "solution": "גיבוש", "explanation": "" },
-    { "definition": "אחו (3)", "solution": "אפר", "explanation": "" },
-    { "definition": "אחוז (4)", "solution": "נתח", "explanation": "" },
-    { "definition": "אחוזה (4)", "solution": "נחלה", "explanation": "" },
-    { "definition": "אחור (4)", "solution": "עורף", "explanation": "" },
-    { "definition": "אחורי (4)", "solution": "גבי", "explanation": "" },
-    { "definition": "אחז (3)", "solution": "לפד", "explanation": "" },
-    { "definition": "אחז (3)", "solution": "תפס", "explanation": "" },
-    { "definition": "אחיינית (4)", "solution": "קרובה", "explanation": "" },
-    { "definition": "אחלה (4)", "solution": "יופי", "explanation": "" },
-    { "definition": "אחראי (4)", "solution": "נאמן", "explanation": "" },
-    { "definition": "אחראי על משמעת (4)", "solution": "רסר", "explanation": "" },
-    { "definition": "אחרי הצהריים (2)", "solution": "אחה", "explanation": "" },
-    { "definition": "אחרית (4)", "solution": "סוף", "explanation": "" },
-    { "definition": "אחרית הימים (4)", "solution": "קץ", "explanation": "" },
-    { "definition": "אט (2)", "solution": "רך", "explanation": "" },
-    { "definition": "אטד (4)", "solution": "קוץ", "explanation": "" },
-    { "definition": "אטום (4)", "solution": "סתום", "explanation": "" },
-    { "definition": "אטמוספירה (4)", "solution": "אויר", "explanation": "" },
-    { "definition": "אטם (3)", "solution": "סכר", "explanation": "" },
-    { "definition": "אטן (4)", "solution": "האט", "explanation": "" },
-    { "definition": "אי (2)", "solution": "טל", "explanation": "" },
-    { "definition": "אי (3)", "solution": "נגד", "explanation": "" },
-    { "definition": "אי בהירות (4)", "solution": "ערפל", "explanation": "" },
-    { "definition": "אי ביצוע (4)", "solution": "מחדל", "explanation": "" },
-    { "definition": "אי הבנה (4)", "solution": "טעות", "explanation": "" },
-    { "definition": "אי ודאות (4)", "solution": "ספק", "explanation": "" },
-    { "definition": "אי זהירות (4)", "solution": "פחז", "explanation": "" },
-    { "definition": "אי יושר (4)", "solution": "מרמה", "explanation": "" },
-    { "definition": "אי כושר (4)", "solution": "נכות", "explanation": "" },
-    { "definition": "אי נעימות (4)", "solution": "מבוכה", "explanation": "" },
-    { "definition": "אי סדר (4)", "solution": "תוהו", "explanation": "" },
-    { "definition": "אי צדק (4)", "solution": "עוול", "explanation": "" },
-    { "definition": "אי קבלה (4)", "solution": "דחייה", "explanation": "" },
-    { "definition": "אי שקט (4)", "solution": "מתח", "explanation": "" },
-    { "definition": "איבה (4)", "solution": "שנאה", "explanation": "" },
-    { "definition": "איגוד (4)", "solution": "ארגון", "explanation": "" },
-    { "definition": "איד (2)", "solution": "צרה", "explanation": "" },
-    { "definition": "אידיאל (4)", "solution": "מופת", "explanation": "" },
-    { "definition": "אידיליה (4)", "solution": "שלווה", "explanation": "" },
-    { "definition": "אידיוט (4)", "solution": "שוטה", "explanation": "" },
-    { "definition": "איווה (4)", "solution": "חשק", "explanation": "" },
-    { "definition": "איוולת (4)", "solution": "שטות", "explanation": "" },
-    { "definition": "איום (4)", "solution": "נורא", "explanation": "" },
-    { "definition": "איום (4)", "solution": "הפחדה", "explanation": "" },
-    { "definition": "איוש (4)", "solution": "שיבוץ", "explanation": "" },
-    { "definition": "איחוד (4)", "solution": "מיזוג", "explanation": "" },
-    { "definition": "איחולי הצלחה (4)", "solution": "ברכה", "explanation": "" },
-    { "definition": "איחור (4)", "solution": "פיגור", "explanation": "" },
-    { "definition": "איילת (4)", "solution": "אילה", "explanation": "" },
-    { "definition": "איים (4)", "solution": "הפחיד", "explanation": "" },
-    { "definition": "איין (4)", "solution": "ביטל", "explanation": "" },
-    { "definition": "איכות (4)", "solution": "טיב", "explanation": "" },
-    { "definition": "איל (2)", "solution": "כוח", "explanation": "" },
-    { "definition": "איל (3)", "solution": "כבש", "explanation": "" },
-    { "definition": "אילון (4)", "solution": "נחל", "explanation": "" },
-    { "definition": "אילן (3)", "solution": "עץ", "explanation": "" },
-    { "definition": "אילם (4)", "solution": "חרישי", "explanation": "" },
-    { "definition": "אילף (4)", "solution": "לימד", "explanation": "" },
-    { "definition": "אימה (4)", "solution": "פחד", "explanation": "" },
-    { "definition": "אימון (4)", "solution": "תרגול", "explanation": "" },
-    { "definition": "אימץ (4)", "solution": "חיזק", "explanation": "" },
-    { "definition": "אימץ (3)", "solution": "סגל", "explanation": "" },
-    { "definition": "אימרה (4)", "solution": "פתגם", "explanation": "" },
-    { "definition": "אין (2)", "solution": "אפס", "explanation": "" },
-    { "definition": "אין לו אח ורע (4)", "solution": "יחיד", "explanation": "" },
-    { "definition": "אינו בנמצא (4)", "solution": "חסר", "explanation": "" },
-    { "definition": "אינטגרציה (4)", "solution": "מיזוג", "explanation": "" },
-    { "definition": "אינטואיציה (4)", "solution": "חוש", "explanation": "" },
-    { "definition": "אינטנסיבי (4)", "solution": "מאומץ", "explanation": "" },
-    { "definition": "אינטרס (4)", "solution": "חפץ", "explanation": "" },
-    { "definition": "איסור (4)", "solution": "חרם", "explanation": "" },
-    { "definition": "איסוף (4)", "solution": "ליקוט", "explanation": "" },
-    { "definition": "איעף (4)", "solution": "עייף", "explanation": "" },
-    { "definition": "איפה (4)", "solution": "היכן", "explanation": "" },
-    { "definition": "איפור (4)", "solution": "כחול", "explanation": "" },
-    { "definition": "איפול (4)", "solution": "חשאי", "explanation": "" },
-    { "definition": "איפוק (4)", "solution": "ריסון", "explanation": "" },
-    { "definition": "איפר (4)", "solution": "הפר", "explanation": "" },
-    { "definition": "איצטדיון (4)", "solution": "מגרש", "explanation": "" },
-    { "definition": "איצטרובל (4)", "solution": "פרי", "explanation": "" },
-    { "definition": "איקונין (4)", "solution": "דמות", "explanation": "" },
-    { "definition": "אירוניה (4)", "solution": "לעג", "explanation": "" },
-    { "definition": "אירוע (4)", "solution": "מקרה", "explanation": "" },
-    { "definition": "אירוע חגיגי (4)", "solution": "טקס", "explanation": "" },
-    { "definition": "אירוס (4)", "solution": "פרח", "explanation": "" },
-    { "definition": "איריס (4)", "solution": "פרח", "explanation": "" },
-    { "definition": "איש (2)", "solution": "פרט", "explanation": "" },
-    { "definition": "איש אדמה (4)", "solution": "יוגב", "explanation": "" },
-    { "definition": "איש אמונים (4)", "solution": "חסיד", "explanation": "" },
-    { "definition": "איש אשכולות (4)", "solution": "עילוי", "explanation": "" },
-    { "definition": "איש בשורה (4)", "solution": "מבשר", "explanation": "" },
-    { "definition": "איש דמים (4)", "solution": "רוצח", "explanation": "" },
-    { "definition": "איש דת (4)", "solution": "כומר", "explanation": "" },
-    { "definition": "איש הגות (4)", "solution": "הוגה", "explanation": "" },
-    { "definition": "איש השעה (4)", "solution": "גיבור", "explanation": "" },
-    { "definition": "איש חיל (4)", "solution": "גיבור", "explanation": "" },
-    { "definition": "איש חרם (4)", "solution": "אויב", "explanation": "" },
-    { "definition": "איש מדע (4)", "solution": "חוקר", "explanation": "" },
-    { "definition": "איש מדון (4)", "solution": "ריבני", "explanation": "" },
-    { "definition": "איש מידות (4)", "solution": "ענק", "explanation": "" },
-    { "definition": "איש מלחמה (4)", "solution": "לוחם", "explanation": "" },
-    { "definition": "איש סוד (4)", "solution": "מקורב", "explanation": "" },
-    { "definition": "איש עסקים (4)", "solution": "סוחר", "explanation": "" },
-    { "definition": "איש צבא (4)", "solution": "חייל", "explanation": "" },
-    { "definition": "איש קבע (4)", "solution": "חייל", "explanation": "" },
-    { "definition": "איש קודש (4)", "solution": "נביא", "explanation": "" },
-    { "definition": "איש ריב (4)", "solution": "אויב", "explanation": "" },
-    { "definition": "אישור (4)", "solution": "היתר", "explanation": "" },
-    { "definition": "אישור (4)", "solution": "תוקף", "explanation": "" },
-    { "definition": "אישיות (4)", "solution": "דמות", "explanation": "" },
-    { "definition": "אישיות (4)", "solution": "אדם", "explanation": "" },
-    { "definition": "אישון (4)", "solution": "עין", "explanation": "" },
-    { "definition": "אישר (4)", "solution": "התיר", "explanation": "" },
-    { "definition": "איתור (4)", "solution": "גילוי", "explanation": "" },
-    { "definition": "איתן (4)", "solution": "חזק", "explanation": "" },
-    { "definition": "איתן (4)", "solution": "יציב", "explanation": "" },
-    { "definition": "איתר (4)", "solution": "מצא", "explanation": "" },
-    { "definition": "אך (2)", "solution": "רק", "explanation": "" },
-    { "definition": "אכזר (4)", "solution": "רשע", "explanation": "" },
-    { "definition": "אכילה (4)", "solution": "סעודה", "explanation": "" },
-    { "definition": "אכיל (4)", "solution": "מאכל", "explanation": "" },
-    { "definition": "אכל (3)", "solution": "סעד", "explanation": "" },
-    { "definition": "אכלוס (4)", "solution": "יישוב", "explanation": "" },
-    { "definition": "אכסניה (4)", "solution": "מלון", "explanation": "" },
-    { "definition": "אכף (3)", "solution": "כפה", "explanation": "" },
-    { "definition": "אכר (3)", "solution": "יוגב", "explanation": "" },
-    { "definition": "אל (2)", "solution": "לא", "explanation": "" },
-    { "definition": "אל (2)", "solution": "עז", "explanation": "" },
-    { "definition": "אל נכון (4)", "solution": "ודאי", "explanation": "" },
-    { "definition": "אלה (3)", "solution": "מכה", "explanation": "" },
-    { "definition": "אלה (3)", "solution": "שבועה", "explanation": "" },
-    { "definition": "אלגוריתם (4)", "solution": "שיטה", "explanation": "" },
-    { "definition": "אלגיה (4)", "solution": "קינה", "explanation": "" },
-    { "definition": "אלגנטי (4)", "solution": "הדור", "explanation": "" },
-    { "definition": "אלומה (4)", "solution": "צרור", "explanation": "" },
-    { "definition": "אלון (4)", "solution": "אילן", "explanation": "" },
-    { "definition": "אלוף (4)", "solution": "פרש", "explanation": "" },
-    { "definition": "אלוף (4)", "solution": "קצין", "explanation": "" },
-    { "definition": "אליבי (4)", "solution": "טענה", "explanation": "" },
-    { "definition": "אליטה (4)", "solution": "עלית", "explanation": "" },
-    { "definition": "אלים (4)", "solution": "תוקפן", "explanation": "" },
-    { "definition": "אלכסון (4)", "solution": "נטייה", "explanation": "" },
-    { "definition": "אלם (3)", "solution": "שתק", "explanation": "" },
-    { "definition": "אלמנך (4)", "solution": "לוח", "explanation": "" },
-    { "definition": "אלמנט (4)", "solution": "יסוד", "explanation": "" },
-    { "definition": "אלף (3)", "solution": "שור", "explanation": "" },
-    { "definition": "אלפיים (4)", "solution": "מאלף", "explanation": "" },
-    { "definition": "אלתור (4)", "solution": "ביצוע", "explanation": "" },
-    { "definition": "אם (2)", "solution": "לו", "explanation": "" },
-    { "definition": "אמביציה (4)", "solution": "מרץ", "explanation": "" },
-    { "definition": "אמבולנס (4)", "solution": "רכב", "explanation": "" },
-    { "definition": "אמבט (4)", "solution": "מקלחת", "explanation": "" },
-    { "definition": "אמה (3)", "solution": "שפחה", "explanation": "" },
-    { "definition": "אמה (3)", "solution": "תעלה", "explanation": "" },
-    { "definition": "אמו (3)", "solution": "אימו", "explanation": "" },
-    { "definition": "אמון (4)", "solution": "ביטחון", "explanation": "" },
-    { "definition": "אמון (4)", "solution": "יושר", "explanation": "" },
-    { "definition": "אמונה (4)", "solution": "דת", "explanation": "" },
-    { "definition": "אמוציונלי (4)", "solution": "רגשי", "explanation": "" },
-    { "definition": "אמור (4)", "solution": "נאמר", "explanation": "" },
-    { "definition": "אמורי (4)", "solution": "עתיק", "explanation": "" },
-    { "definition": "אמזונה (4)", "solution": "לוחמת", "explanation": "" },
-    { "definition": "אמטלה (4)", "solution": "תירוץ", "explanation": "" },
-    { "definition": "אמיל (4)", "solution": "שם", "explanation": "" },
-    { "definition": "אמין (4)", "solution": "מהימן", "explanation": "" },
-    { "definition": "אמיר (4)", "solution": "צמרת", "explanation": "" },
-    { "definition": "אמיץ (4)", "solution": "נועז", "explanation": "" },
-    { "definition": "אמיץ (4)", "solution": "גיבור", "explanation": "" },
-    { "definition": "אמירה (4)", "solution": "ביטוי", "explanation": "" },
-    { "definition": "אמיתי (4)", "solution": "כנה", "explanation": "" },
-    { "definition": "אמיתי (4)", "solution": "נכון", "explanation": "" },
-    { "definition": "אמנה (4)", "solution": "חוזה", "explanation": "" },
-    { "definition": "אמנון (4)", "solution": "דג", "explanation": "" },
-    { "definition": "אמנות (4)", "solution": "יצירה", "explanation": "" },
-    { "definition": "אמנות הלחימה (4)", "solution": "ג'ודו", "explanation": "" },
-    { "definition": "אמנותי (4)", "solution": "יפה", "explanation": "" },
-    { "definition": "אמץ (3)", "solution": "חזק", "explanation": "" },
-    { "definition": "אמפתיה (4)", "solution": "הבנה", "explanation": "" },
-    { "definition": "אמרה (4)", "solution": "פתגם", "explanation": "" },
-    { "definition": "אמרה (4)", "solution": "שוליים", "explanation": "" },
-    { "definition": "אמריקה (4)", "solution": "ארהב", "explanation": "" },
-    { "definition": "אמש (3)", "solution": "לילה", "explanation": "" },
-    { "definition": "אמת (3)", "solution": "צדק", "explanation": "" },
-    { "definition": "אמת מידה (4)", "solution": "קנה", "explanation": "" },
-    { "definition": "אמתחת (4)", "solution": "תיק", "explanation": "" },
-    { "definition": "אמתלה (4)", "solution": "תירוץ", "explanation": "" },
-    { "definition": "אנו (2)", "solution": "אנחנו", "explanation": "" },
-    { "definition": "אנוכי (4)", "solution": "עצמי", "explanation": "" },
-    { "definition": "אנוכי (4)", "solution": "סוליסט", "explanation": "" },
-    { "definition": "אנומליה (4)", "solution": "חריגה", "explanation": "" },
-    { "definition": "אנונו (4)", "solution": "עננו", "explanation": "" },
-    { "definition": "אנונימי (4)", "solution": "אלמוני", "explanation": "" },
-    { "definition": "אנוש (4)", "solution": "קשה", "explanation": "" },
-    { "definition": "אנושות (4)", "solution": "עולם", "explanation": "" },
-    { "definition": "אנטי (3)", "solution": "נגד", "explanation": "" },
-    { "definition": "אנטיביוטיקה (4)", "solution": "תרופה", "explanation": "" },
-    { "definition": "אנטיקה (4)", "solution": "ענתיקה", "explanation": "" },
-    { "definition": "אנטישמיות (4)", "solution": "שנאה", "explanation": "" },
-    { "definition": "אני (2)", "solution": "עצמי", "explanation": "" },
-    { "definition": "אניגמה (4)", "solution": "חידה", "explanation": "" },
-    { "definition": "אנייה (4)", "solution": "ספינה", "explanation": "" },
-    { "definition": "אנין (4)", "solution": "עדין", "explanation": "" },
-    { "definition": "אנין טעם (4)", "solution": "גורמה", "explanation": "" },
-    { "definition": "אניציה (4)", "solution": "מרץ", "explanation": "" },
-    { "definition": "אנך (3)", "solution": "ניצב", "explanation": "" },
-    { "definition": "אנכרוניסטי (4)", "solution": "מיושן", "explanation": "" },
-    { "definition": "אנליזה (4)", "solution": "ניתוח", "explanation": "" },
-    { "definition": "אנלוגיה (4)", "solution": "הקשה", "explanation": "" },
-    { "definition": "אנמי (4)", "solution": "חלש", "explanation": "" },
-    { "definition": "אנף (3)", "solution": "כעס", "explanation": "" },
-    { "definition": "אנפה (4)", "solution": "ציפור", "explanation": "" },
-    { "definition": "אנפילאות (4)", "solution": "נעליים", "explanation": "" },
-    { "definition": "אנציקלופדיה (4)", "solution": "ידע", "explanation": "" },
-    { "definition": "אנקה (4)", "solution": "צעקה", "explanation": "" },
-    { "definition": "אנקה (4)", "solution": "גניחה", "explanation": "" },
-    { "definition": "אנרגיה (4)", "solution": "מרץ", "explanation": "" },
-    { "definition": "אנרכיה (4)", "solution": "הפקר", "explanation": "" },
-    { "definition": "אנרכיסט (4)", "solution": "מורד", "explanation": "" },
-    { "definition": "אנס (3)", "solution": "כפה", "explanation": "" },
-    { "definition": "אנסמבל (4)", "solution": "להקה", "explanation": "" },
-    { "definition": "אנתרופולוג (4)", "solution": "חוקר", "explanation": "" },
-    { "definition": "אס (2)", "solution": "קלף", "explanation": "" },
-    { "definition": "אסא (3)", "solution": "רופא", "explanation": "" },
-    { "definition": "אסדה (4)", "solution": "רפסודה", "explanation": "" },
-    { "definition": "אסוציאציה (4)", "solution": "הקשר", "explanation": "" },
-    { "definition": "אסון (4)", "solution": "פגע", "explanation": "" },
-    { "definition": "אסון (4)", "solution": "איד", "explanation": "" },
-    { "definition": "אוסף (4)", "solution": "מלקט", "explanation": "" },
-    { "definition": "אוסף (4)", "solution": "קובץ", "explanation": "" },
-    { "definition": "אוסף בולים (4)", "solution": "אלבום", "explanation": "" },
-    { "definition": "אסופי (4)", "solution": "נטוש", "explanation": "" },
-    { "definition": "אסופת כתבים (4)", "solution": "לקט", "explanation": "" },
-    { "definition": "אסימטרי (4)", "solution": "עקום", "explanation": "" },
-    { "definition": "אסימון (4)", "solution": "מטבע", "explanation": "" },
-    { "definition": "אסיסט (4)", "solution": "בישול", "explanation": "" },
-    { "definition": "אסיסטנט (4)", "solution": "עוזר", "explanation": "" },
-    { "definition": "אסיפה (4)", "solution": "כינוס", "explanation": "" },
-    { "definition": "אסיף (4)", "solution": "קציר", "explanation": "" },
-    { "definition": "אסיר (4)", "solution": "כלוא", "explanation": "" },
-    { "definition": "אסקופה (4)", "solution": "סף", "explanation": "" },
-    { "definition": "אסכולה (4)", "solution": "שיטה", "explanation": "" },
-    { "definition": "אסטרטגיה (4)", "solution": "תכנון", "explanation": "" },
-    { "definition": "אסטרונאוט (4)", "solution": "טייס", "explanation": "" },
-    { "definition": "אסטרונומיה (4)", "solution": "חלל", "explanation": "" },
-    { "definition": "אסטרולוגיה (4)", "solution": "מזל", "explanation": "" },
-    { "definition": "אסם (3)", "solution": "ממגורה", "explanation": "" },
-    { "definition": "אסס (3)", "solution": "חשש", "explanation": "" },
-    { "definition": "אספסוף (4)", "solution": "המון", "explanation": "" },
-    { "definition": "אספקה (4)", "solution": "ציוד", "explanation": "" },
-    { "definition": "אספקט (4)", "solution": "היבט", "explanation": "" },
-    { "definition": "אספרסו (4)", "solution": "קפה", "explanation": "" },
-    { "definition": "אסר (3)", "solution": "כבל", "explanation": "" },
-    { "definition": "אסר (3)", "solution": "מנע", "explanation": "" },
-    { "definition": "אסרטיבי (4)", "solution": "דעתן", "explanation": "" },
-    { "definition": "אסרטיביות (4)", "solution": "ביטחון", "explanation": "" },
-    { "definition": "אעבד (4)", "solution": "אעבוד", "explanation": "" },
-    { "definition": "אף (2)", "solution": "גם", "explanation": "" },
-    { "definition": "אף (2)", "solution": "חרון", "explanation": "" },
-    { "definition": "אפוקליפסה (4)", "solution": "חורבן", "explanation": "" },
-    { "definition": "אפוטרופוס (4)", "solution": "מגן", "explanation": "" },
-    { "definition": "אופטימי (4)", "solution": "קיווי", "explanation": "" },
-    { "definition": "אופטימיות (4)", "solution": "תקווה", "explanation": "" },
-    { "definition": "אפוף (4)", "solution": "עטוף", "explanation": "" },
-    { "definition": "אפי (3)", "solution": "ענק", "explanation": "" },
-    { "definition": "אפיון (4)", "solution": "תיאור", "explanation": "" },
-    { "definition": "אפיק (4)", "solution": "נתיב", "explanation": "" },
-    { "definition": "אפיק (4)", "solution": "זרם", "explanation": "" },
-    { "definition": "אפילוג (4)", "solution": "סוף", "explanation": "" },
-    { "definition": "אפיפיור (4)", "solution": "ראש", "explanation": "" },
-    { "definition": "אפיר (4)", "solution": "עפר", "explanation": "" },
-    { "definition": "אפלה (4)", "solution": "חושך", "explanation": "" },
-    { "definition": "אפלטוני (4)", "solution": "רוחני", "explanation": "" },
-    { "definition": "אפליה (4)", "solution": "קיפוח", "explanation": "" },
-    { "definition": "אפליקציה (4)", "solution": "יישומון", "explanation": "" },
-    { "definition": "אפלולית (4)", "solution": "עלטה", "explanation": "" },
-    { "definition": "אופנוע (4)", "solution": "רכב", "explanation": "" },
-    { "definition": "אפס (3)", "solution": "כלום", "explanation": "" },
-    { "definition": "אפרוח (4)", "solution": "גוזל", "explanation": "" },
-    { "definition": "אפרכסת (4)", "solution": "אוזן", "explanation": "" },
-    { "definition": "אפרסק (4)", "solution": "פרי", "explanation": "" },
-    { "definition": "אפקט (4)", "solution": "תוצאה", "explanation": "" },
-    { "definition": "אפקטיבי (4)", "solution": "יעיל", "explanation": "" },
-    { "definition": "אופק (4)", "solution": "רחוק", "explanation": "" },
-    { "definition": "אפשר (4)", "solution": "ניתן", "explanation": "" },
-    { "definition": "אפשרות (4)", "solution": "סיכוי", "explanation": "" },
-    { "definition": "אפשרי (4)", "solution": "יתכן", "explanation": "" },
-    { "definition": "אפתיה (4)", "solution": "אדישות", "explanation": "" },
-    { "definition": "אצא (3)", "solution": "אצא", "explanation": "" },
-    { "definition": "אצבע (4)", "solution": "גליל", "explanation": "" },
-    { "definition": "אצבעוני (4)", "solution": "זעיר", "explanation": "" },
-    { "definition": "אצטבה (4)", "solution": "מדף", "explanation": "" },
-    { "definition": "אצטדיון (4)", "solution": "מגרש", "explanation": "" },
-    { "definition": "אצטלה (4)", "solution": "גלימה", "explanation": "" },
-    { "definition": "אצטלה (4)", "solution": "כיסוי", "explanation": "" },
-    { "definition": "אצטרובל (4)", "solution": "פרי", "explanation": "" },
-    { "definition": "אציל (4)", "solution": "רוזן", "explanation": "" },
-    { "definition": "אצילות (4)", "solution": "הדר", "explanation": "" },
-    { "definition": "אצירה (4)", "solution": "איסוף", "explanation": "" },
-    { "definition": "אצל (3)", "solution": "ליד", "explanation": "" },
-    { "definition": "אצן (3)", "solution": "רץ", "explanation": "" },
-    { "definition": "אצר (3)", "solution": "שמר", "explanation": "" },
-    { "definition": "אקווריום (4)", "solution": "מיכל", "explanation": "" },
-    { "definition": "אקולוגיה (4)", "solution": "סביבה", "explanation": "" },
-    { "definition": "אקונומיקה (4)", "solution": "חומר", "explanation": "" },
-    { "definition": "אופקי (4)", "solution": "ישר", "explanation": "" },
-    { "definition": "אקלים (4)", "solution": "מזג", "explanation": "" },
-    { "definition": "אקסטזה (4)", "solution": "התלהבות", "explanation": "" },
-    { "definition": "אקסטרה (4)", "solution": "נוסף", "explanation": "" },
-    { "definition": "אקטיבי (4)", "solution": "פעיל", "explanation": "" },
-    { "definition": "אקראי (4)", "solution": "מקרי", "explanation": "" },
-    { "definition": "אקרובט (4)", "solution": "לוליין", "explanation": "" },
-    { "definition": "אקרון (4)", "solution": "עקרון", "explanation": "" },
-    { "definition": "אקרופוליס (4)", "solution": "מבצר", "explanation": "" },
-    { "definition": "אקסלוסיבי (4)", "solution": "יוקרתי", "explanation": "" },
-    { "definition": "אקראיות (4)", "solution": "גורל", "explanation": "" },
-    { "definition": "אר (2)", "solution": "אור", "explanation": "" },
-    { "definition": "ארובה (4)", "solution": "צינור", "explanation": "" },
-    { "definition": "ארוחה (4)", "solution": "סעודה", "explanation": "" },
-    { "definition": "ארוך (4)", "solution": "ממושך", "explanation": "" },
-    { "definition": "ארומה (4)", "solution": "ניחוח", "explanation": "" },
-    { "definition": "ארון (3)", "solution": "תיבה", "explanation": "" },
-    { "definition": "ארוס (4)", "solution": "חתן", "explanation": "" },
-    { "definition": "ארור (4)", "solution": "מקולל", "explanation": "" },
-    { "definition": "ארוע (4)", "solution": "מקרה", "explanation": "" },
-    { "definition": "ארופה (4)", "solution": "יבשת", "explanation": "" },
-    { "definition": "ארוץ (4)", "solution": "ארוץ", "explanation": "" },
-    { "definition": "ארזה (4)", "solution": "חבילה", "explanation": "" },
-    { "definition": "ארחי (4)", "solution": "אורח", "explanation": "" },
-    { "definition": "ארי (3)", "solution": "אריה", "explanation": "" },
-    { "definition": "אריג (4)", "solution": "בד", "explanation": "" },
-    { "definition": "אריה (4)", "solution": "לביא", "explanation": "" },
-    { "definition": "אריכות (4)", "solution": "משך", "explanation": "" },
-    { "definition": "אריזה (4)", "solution": "עטיפה", "explanation": "" },
-    { "definition": "אריח (4)", "solution": "מרצפת", "explanation": "" },
-    { "definition": "אריסטוקרט (4)", "solution": "אציל", "explanation": "" },
-    { "definition": "אריתמטיקה (4)", "solution": "חשבון", "explanation": "" },
-    { "definition": "ארכיב (4)", "solution": "גניזה", "explanation": "" },
-    { "definition": "ארכיון (4)", "solution": "גנזך", "explanation": "" },
-    { "definition": "ארכיטקט (4)", "solution": "אדריכל", "explanation": "" },
-    { "definition": "ארכיפלג (4)", "solution": "איים", "explanation": "" },
-    { "definition": "ארכני (4)", "solution": "ארוך", "explanation": "" },
-    { "definition": "ארכוף (4)", "solution": "ארכובה", "explanation": "" },
-    { "definition": "ארץ (3)", "solution": "מדינה", "explanation": "" },
-    { "definition": "ארמון (4)", "solution": "היכל", "explanation": "" },
-    { "definition": "ארנב (4)", "solution": "שפן", "explanation": "" },
-    { "definition": "ארנק (4)", "solution": "תיק", "explanation": "" },
-    { "definition": "ארס (3)", "solution": "רעל", "explanation": "" },
-    { "definition": "ארסנל (4)", "solution": "נשקייה", "explanation": "" },
-    { "definition": "ארעי (4)", "solution": "זמני", "explanation": "" },
-    { "definition": "ארע (3)", "solution": "קרה", "explanation": "" },
-    { "definition": "ארץ (3)", "solution": "קרקע", "explanation": "" },
-    { "definition": "ארצי (4)", "solution": "מקומי", "explanation": "" },
-    { "definition": "ארשת (4)", "solution": "הבעה", "explanation": "" },
-    { "definition": "אש (2)", "solution": "להבה", "explanation": "" },
-    { "definition": "אשגר (4)", "solution": "מברק", "explanation": "" },
-    { "definition": "אשד (3)", "solution": "מפל", "explanation": "" },
-    { "definition": "אשדם (4)", "solution": "אודם", "explanation": "" },
-    { "definition": "אשה (3)", "solution": "גברת", "explanation": "" },
-    { "definition": "אשווה (4)", "solution": "השוואה", "explanation": "" },
-    { "definition": "אשוח (4)", "solution": "עץ", "explanation": "" },
-    { "definition": "אשון (4)", "solution": "קשה", "explanation": "" },
-    { "definition": "אשורי (4)", "solution": "עתיק", "explanation": "" },
-    { "definition": "אשוש (4)", "solution": "חיזוק", "explanation": "" },
-    { "definition": "אשחה (4)", "solution": "שחייה", "explanation": "" },
-    { "definition": "אשכול (4)", "solution": "צרור", "explanation": "" },
-    { "definition": "אשכח (4)", "solution": "אשכח", "explanation": "" },
-    { "definition": "אשל (3)", "solution": "עץ", "explanation": "" },
-    { "definition": "אשליה (4)", "solution": "מקסם", "explanation": "" },
-    { "definition": "אשמה (4)", "solution": "חטא", "explanation": "" },
-    { "definition": "אשמדאי (4)", "solution": "שד", "explanation": "" },
-    { "definition": "אשמורת (4)", "solution": "חלק", "explanation": "" },
-    { "definition": "אשמה (4)", "solution": "עוון", "explanation": "" },
-    { "definition": "אשנב (4)", "solution": "חלון", "explanation": "" },
-    { "definition": "אשנתי (4)", "solution": "שנתי", "explanation": "" },
-    { "definition": "אשף (3)", "solution": "מומחה", "explanation": "" },
-    { "definition": "אשפה (4)", "solution": "זבל", "explanation": "" },
-    { "definition": "אשפרה (4)", "solution": "שיפור", "explanation": "" },
-    { "definition": "אשק (3)", "solution": "נשק", "explanation": "" },
-    { "definition": "אשקה (4)", "solution": "השקיה", "explanation": "" },
-    { "definition": "אשקלוני (4)", "solution": "בצל", "explanation": "" },
-    { "definition": "אשראי (4)", "solution": "חוב", "explanation": "" },
-    { "definition": "אשרור (4)", "solution": "אישור", "explanation": "" },
-    { "definition": "אשרי (4)", "solution": "מזל", "explanation": "" },
-    { "definition": "אשר (3)", "solution": "אישר", "explanation": "" },
-    { "definition": "אשר (3)", "solution": "קרה", "explanation": "" },
-    { "definition": "אשתו (4)", "solution": "רעייתו", "explanation": "" },
-    { "definition": "אשתקד (4)", "solution": "אשתקד", "explanation": "" },
-    { "definition": "את (2)", "solution": "כלי", "explanation": "" },
-    { "definition": "אתגר (4)", "solution": "משימה", "explanation": "" },
-    { "definition": "אתוס (4)", "solution": "דמות", "explanation": "" },
-    { "definition": "אתי (3)", "solution": "מוסרי", "explanation": "" },
-    { "definition": "אתיקה (4)", "solution": "מוסר", "explanation": "" },
-    { "definition": "אתלט (4)", "solution": "ספורטאי", "explanation": "" },
-    { "definition": "אתמול (4)", "solution": "אמש", "explanation": "" },
-    { "definition": "אתן (3)", "solution": "חזק", "explanation": "" },
-    { "definition": "אתנחתא (4)", "solution": "הפסקה", "explanation": "" },
-    { "definition": "אתני (4)", "solution": "עממי", "explanation": "" },
-    { "definition": "אתנן (4)", "solution": "שכר", "explanation": "" },
-    { "definition": "אתר (3)", "solution": "מקום", "explanation": "" },
-    { "definition": "אתר (3)", "solution": "מצא", "explanation": "" },
-    { "definition": "אתרעה (4)", "solution": "אזהרה", "explanation": "" },
-    { "definition": "בא (2)", "solution": "הגיע", "explanation": "" },
-    { "definition": "בא בימים (4)", "solution": "זקן", "explanation": "" },
-    { "definition": "בא כוח (4)", "solution": "נציג", "explanation": "" },
-    { "definition": "באב (3)", "solution": "שער", "explanation": "" },
-    { "definition": "באג (3)", "solution": "תקלה", "explanation": "" },
-    { "definition": "באושה (4)", "solution": "סירחון", "explanation": "" },
-    { "definition": "באור (4)", "solution": "הסבר", "explanation": "" },
-    { "definition": "באי (3)", "solution": "נכנס", "explanation": "" },
-    { "definition": "באל (3)", "solution": "ריקוד", "explanation": "" },
-    { "definition": "באסה (4)", "solution": "צרה", "explanation": "" },
-    { "definition": "באר (3)", "solution": "הסביר", "explanation": "" },
-    { "definition": "באר (3)", "solution": "חפר", "explanation": "" },
-    { "definition": "באש (3)", "solution": "הסריח", "explanation": "" },
-    { "definition": "בבואה (4)", "solution": "דמות", "explanation": "" },
-    { "definition": "בבון (4)", "solution": "קוף", "explanation": "" },
-    { "definition": "בבית (4)", "solution": "בפנים", "explanation": "" },
-    { "definition": "בבת אחת (4)", "solution": "מיד", "explanation": "" },
-    { "definition": "בבת עין (4)", "solution": "יקר", "explanation": "" },
-    { "definition": "בגד (3)", "solution": "לבוש", "explanation": "" },
-    { "definition": "בגד (3)", "solution": "מעל", "explanation": "" },
-    { "definition": "בגדר (4)", "solution": "כמו", "explanation": "" },
-    { "definition": "בגידה (4)", "solution": "מעילה", "explanation": "" },
-    { "definition": "בגיל (4)", "solution": "בשמחה", "explanation": "" },
-    { "definition": "בגין (4)", "solution": "בגלל", "explanation": "" },
-    { "definition": "בגפו (4)", "solution": "לבד", "explanation": "" },
-    { "definition": "בגר (3)", "solution": "גדל", "explanation": "" },
-    { "definition": "בגרות (4)", "solution": "בשלות", "explanation": "" },
-    { "definition": "בד (2)", "solution": "אריג", "explanation": "" },
-    { "definition": "בד (2)", "solution": "ענף", "explanation": "" },
-    { "definition": "בדאי (4)", "solution": "שקרן", "explanation": "" },
-    { "definition": "בדיחה (4)", "solution": "הלצה", "explanation": "" },
-    { "definition": "בדיל (4)", "solution": "מתכת", "explanation": "" },
-    { "definition": "בדיקה (4)", "solution": "מבחן", "explanation": "" },
-    { "definition": "בדיקה (4)", "solution": "סריקה", "explanation": "" },
-    { "definition": "בדיעבד (4)", "solution": "בדיעבד", "explanation": "" },
-    { "definition": "בדל (3)", "solution": "קצה", "explanation": "" },
-    { "definition": "בדלני (4)", "solution": "נפרד", "explanation": "" },
-    { "definition": "בדק (3)", "solution": "בחן", "explanation": "" },
-    { "definition": "בדק (3)", "solution": "תיקן", "explanation": "" },
-    { "definition": "בהול (4)", "solution": "דחוף", "explanation": "" },
-    { "definition": "בהונות (4)", "solution": "אצבעות", "explanation": "" },
-    { "definition": "בחור (4)", "solution": "נער", "explanation": "" },
-    { "definition": "בחילה (4)", "solution": "גועל", "explanation": "" },
-    { "definition": "בחיר (4)", "solution": "נבחר", "explanation": "" },
-    { "definition": "בחירה (4)", "solution": "ברירה", "explanation": "" },
-    { "definition": "בחירות (4)", "solution": "חופש", "explanation": "" },
-    { "definition": "בחינה (4)", "solution": "מבחן", "explanation": "" },
-    { "definition": "בחינם (4)", "solution": "חינם", "explanation": "" },
-    { "definition": "בחל (3)", "solution": "קץ", "explanation": "" },
-    { "definition": "בחן (3)", "solution": "בדק", "explanation": "" },
-    { "definition": "בחפזון (4)", "solution": "מהר", "explanation": "" },
-    { "definition": "בחש (3)", "solution": "ערבב", "explanation": "" },
-    { "definition": "בטון (4)", "solution": "חומר", "explanation": "" },
-    { "definition": "בטוח (4)", "solution": "מוגן", "explanation": "" },
-    { "definition": "בטוח (4)", "solution": "ודאי", "explanation": "" },
-    { "definition": "ביטחון (4)", "solution": "אמון", "explanation": "" },
-    { "definition": "בטל (3)", "solution": "חדל", "explanation": "" },
-    { "definition": "בטלה (4)", "solution": "עצלות", "explanation": "" },
-    { "definition": "בטן (3)", "solution": "מעיים", "explanation": "" },
-    { "definition": "בי (2)", "solution": "שלום", "explanation": "" },
-    { "definition": "ביאור (4)", "solution": "הסבר", "explanation": "" },
-    { "definition": "ביב (3)", "solution": "תעלה", "explanation": "" },
-    { "definition": "ביגוד (4)", "solution": "לבוש", "explanation": "" },
-    { "definition": "בידוד (4)", "solution": "הסגר", "explanation": "" },
-    { "definition": "בידור (4)", "solution": "שעשוע", "explanation": "" },
-    { "definition": "ביטוי (4)", "solution": "ניב", "explanation": "" },
-    { "definition": "ביטול (4)", "solution": "הפרה", "explanation": "" },
-    { "definition": "ביטחון (4)", "solution": "קבע", "explanation": "" },
-    { "definition": "ביטוח (4)", "solution": "מגן", "explanation": "" },
-    { "definition": "ביטל (4)", "solution": "איין", "explanation": "" },
-    { "definition": "ביטלו (4)", "solution": "הפרו", "explanation": "" },
-    { "definition": "ביטני (4)", "solution": "פנימי", "explanation": "" },
-    { "definition": "בימה (4)", "solution": "במה", "explanation": "" },
-    { "definition": "בין (3)", "solution": "בתוך", "explanation": "" },
-    { "definition": "בינה (4)", "solution": "שכל", "explanation": "" },
-    { "definition": "בינוני (4)", "solution": "ממוצע", "explanation": "" },
-    { "definition": "בינת (4)", "solution": "הבנה", "explanation": "" },
-    { "definition": "ביס (2)", "solution": "נשיכה", "explanation": "" },
-    { "definition": "ביסוס (4)", "solution": "חיזוק", "explanation": "" },
-    { "definition": "ביצוע (4)", "solution": "עשייה", "explanation": "" },
-    { "definition": "ביקור (4)", "solution": "סיור", "explanation": "" },
-    { "definition": "ביקורת (4)", "solution": "בדיקה", "explanation": "" },
-    { "definition": "ביקש (4)", "solution": "דרש", "explanation": "" },
-    { "definition": "ביקש (3)", "solution": "שאל", "explanation": "" },
-    { "definition": "בירה (4)", "solution": "עיר", "explanation": "" },
-    { "definition": "ביריון (4)", "solution": "תוקפן", "explanation": "" },
-    { "definition": "ביש (2)", "solution": "רע", "explanation": "" },
-    { "definition": "ביש מזל (4)", "solution": "נאחס", "explanation": "" },
-    { "definition": "בישול (4)", "solution": "אפייה", "explanation": "" },
-    { "definition": "בישנית (4)", "solution": "צנועה", "explanation": "" },
-    { "definition": "בית (3)", "solution": "מעון", "explanation": "" },
-    { "definition": "בית (3)", "solution": "משכן", "explanation": "" },
-    { "definition": "בית בד (4)", "solution": "שמן", "explanation": "" },
-    { "definition": "בית חולים (4)", "solution": "מרפא", "explanation": "" },
-    { "definition": "בית כלא (4)", "solution": "סוהר", "explanation": "" },
-    { "definition": "בית מרקחת (4)", "solution": "פארם", "explanation": "" },
-    { "definition": "בית נתיבות (4)", "solution": "טרמינל", "explanation": "" },
-    { "definition": "בית ספר (4)", "solution": "תיכון", "explanation": "" },
-    { "definition": "ביתן (4)", "solution": "צריף", "explanation": "" },
-    { "definition": "ביתר (4)", "solution": "חתך", "explanation": "" },
-    { "definition": "בכור (4)", "solution": "ראשון", "explanation": "" },
-    { "definition": "בכייה (4)", "solution": "בכי", "explanation": "" },
-    { "definition": "בכיר (4)", "solution": "חשוב", "explanation": "" },
-    { "definition": "בכל זאת (4)", "solution": "אבל", "explanation": "" },
-    { "definition": "בכלל (4)", "solution": "כולל", "explanation": "" },
-    { "definition": "בכוח (4)", "solution": "מאולץ", "explanation": "" },
-    { "definition": "בכי (3)", "solution": "דמע", "explanation": "" },
-    { "definition": "בכי (3)", "solution": "קינה", "explanation": "" },
-    { "definition": "בל (2)", "solution": "לא", "explanation": "" },
-    { "definition": "בלאגן (4)", "solution": "תוהו", "explanation": "" },
-    { "definition": "בלאי (4)", "solution": "נזק", "explanation": "" },
-    { "definition": "בלבד (4)", "solution": "רק", "explanation": "" },
-    { "definition": "בלבול (4)", "solution": "מבוכה", "explanation": "" },
-    { "definition": "בלגיה (4)", "solution": "מדינה", "explanation": "" },
-    { "definition": "בלה (3)", "solution": "זקן", "explanation": "" },
-    { "definition": "בלהה (4)", "solution": "פחד", "explanation": "" },
-    { "definition": "בלוטה (4)", "solution": "גידול", "explanation": "" },
-    { "definition": "בלון (4)", "solution": "כדור", "explanation": "" },
-    { "definition": "בלוק (4)", "solution": "גוש", "explanation": "" },
-    { "definition": "בלורית (4)", "solution": "שיער", "explanation": "" },
-    { "definition": "בלחן (4)", "solution": "לחן", "explanation": "" },
-    { "definition": "בלי (3)", "solution": "ללא", "explanation": "" },
-    { "definition": "בלימה (4)", "solution": "עצירה", "explanation": "" },
-    { "definition": "בליטה (4)", "solution": "זיז", "explanation": "" },
-    { "definition": "בליל (4)", "solution": "תערובת", "explanation": "" },
-    { "definition": "בלילה (4)", "solution": "ערבוב", "explanation": "" },
-    { "definition": "בלם (3)", "solution": "עצר", "explanation": "" },
-    { "definition": "בלם (3)", "solution": "מנע", "explanation": "" },
-    { "definition": "בלן (3)", "solution": "רוחץ", "explanation": "" },
-    { "definition": "בלס (3)", "solution": "אכל", "explanation": "" },
-    { "definition": "בלע (3)", "solution": "גמע", "explanation": "" },
-    { "definition": "בלעדי (4)", "solution": "ייחודי", "explanation": "" },
-    { "definition": "בלעם (4)", "solution": "נביא", "explanation": "" },
-    { "definition": "בלפור (4)", "solution": "הצהרה", "explanation": "" },
-    { "definition": "בלץ (3)", "solution": "בלט", "explanation": "" },
-    { "definition": "בלק (3)", "solution": "מלך", "explanation": "" },
-    { "definition": "בלש (3)", "solution": "חקר", "explanation": "" },
-    { "definition": "בלשון (4)", "solution": "שפה", "explanation": "" },
-    { "definition": "במה (3)", "solution": "דוכן", "explanation": "" },
-    { "definition": "במהרה (4)", "solution": "מיד", "explanation": "" },
-    { "definition": "במו (3)", "solution": "בעזרת", "explanation": "" },
-    { "definition": "במיוחד (4)", "solution": "מאוד", "explanation": "" },
-    { "definition": "במלואו (4)", "solution": "כל", "explanation": "" },
-    { "definition": "במקום (4)", "solution": "חלף", "explanation": "" },
-    { "definition": "בן (2)", "solution": "ילד", "explanation": "" },
-    { "definition": "בן אדם (4)", "solution": "איש", "explanation": "" },
-    { "definition": "בן אלמוות (4)", "solution": "נצחי", "explanation": "" },
-    { "definition": "בן ברית (4)", "solution": "חבר", "explanation": "" },
-    { "definition": "בן זוג (4)", "solution": "חבר", "explanation": "" },
-    { "definition": "בן חורין (4)", "solution": "חופשי", "explanation": "" },
-    { "definition": "בן יומו (4)", "solution": "חדש", "explanation": "" },
-    { "definition": "בן לוויה (4)", "solution": "מלווה", "explanation": "" },
-    { "definition": "בן לילה (4)", "solution": "פתאום", "explanation": "" },
-    { "definition": "בן ערובה (4)", "solution": "שבוי", "explanation": "" },
-    { "definition": "בנאי (4)", "solution": "פועל", "explanation": "" },
-    { "definition": "בנאלי (4)", "solution": "רגיל", "explanation": "" },
-    { "definition": "בנב (3)", "solution": "כתב", "explanation": "" },
-    { "definition": "בנג'י (4)", "solution": "קפיצה", "explanation": "" },
-    { "definition": "בנה (3)", "solution": "הקים", "explanation": "" },
-    { "definition": "בנו (3)", "solution": "בנה", "explanation": "" },
-    { "definition": "בנוסף (4)", "solution": "גם", "explanation": "" },
-    { "definition": "בנזין (4)", "solution": "דלק", "explanation": "" },
-    { "definition": "בנייה (4)", "solution": "הקמה", "explanation": "" },
-    { "definition": "בנימה (4)", "solution": "טון", "explanation": "" },
-    { "definition": "בניין (4)", "solution": "בית", "explanation": "" },
-    { "definition": "בננה (4)", "solution": "פרי", "explanation": "" },
-    { "definition": "בנפיקציה (4)", "solution": "טובה", "explanation": "" },
-    { "definition": "בנק (3)", "solution": "קופה", "explanation": "" },
-    { "definition": "בנקאי (4)", "solution": "עובד", "explanation": "" },
-    { "definition": "בסדר (4)", "solution": "תקין", "explanation": "" },
-    { "definition": "בסירה (4)", "solution": "שיט", "explanation": "" },
-    { "definition": "בסיס (4)", "solution": "יסוד", "explanation": "" },
-    { "definition": "בסיסי (4)", "solution": "ראשי", "explanation": "" },
-    { "definition": "בסמוך (4)", "solution": "ליד", "explanation": "" },
-    { "definition": "בסתר (4)", "solution": "חשאי", "explanation": "" },
-    { "definition": "בעבוע (4)", "solution": "רתיחה", "explanation": "" },
-    { "definition": "בעד (3)", "solution": "לטובת", "explanation": "" },
-    { "definition": "בעוד (4)", "solution": "בזמן", "explanation": "" },
-    { "definition": "בעז (3)", "solution": "חזק", "explanation": "" },
-    { "definition": "בעיה (4)", "solution": "קושי", "explanation": "" },
-    { "definition": "בעיטה (4)", "solution": "מכה", "explanation": "" },
-    { "definition": "בעל (3)", "solution": "אדון", "explanation": "" },
-    { "definition": "בעל ברית (4)", "solution": "שותף", "explanation": "" },
-    { "definition": "בעל חיים (4)", "solution": "חיה", "explanation": "" },
-    { "definition": "בעל כורחו (4)", "solution": "חובה", "explanation": "" },
-    { "definition": "בעל מום (4)", "solution": "נכה", "explanation": "" },
-    { "definition": "בעל פה (4)", "solution": "זלפ", "explanation": "" },
-    { "definition": "בעלה (4)", "solution": "פחד", "explanation": "" },
-    { "definition": "בעלות (4)", "solution": "קניין", "explanation": "" },
-    { "definition": "בעצם (4)", "solution": "למעשה", "explanation": "" },
-    { "definition": "בער (3)", "solution": "דלק", "explanation": "" },
-    { "definition": "בערה (4)", "solution": "דליקה", "explanation": "" },
-    { "definition": "בעת (3)", "solution": "בזמן", "explanation": "" },
-    { "definition": "בעתה (4)", "solution": "פחד", "explanation": "" },
-    { "definition": "בפנים (4)", "solution": "בתוך", "explanation": "" },
-    { "definition": "בפתח (4)", "solution": "קרוב", "explanation": "" },
-    { "definition": "בפרט (4)", "solution": "בייחוד", "explanation": "" },
-    { "definition": "בצד (3)", "solution": "ליד", "explanation": "" },
-    { "definition": "בצורת (4)", "solution": "יובש", "explanation": "" },
-    { "definition": "בציר (4)", "solution": "קטיף", "explanation": "" },
-    { "definition": "בצל (3)", "solution": "חסות", "explanation": "" },
-    { "definition": "בצל (3)", "solution": "ירק", "explanation": "" },
-    { "definition": "בצלאל (4)", "solution": "אמן", "explanation": "" },
-    { "definition": "בצק (3)", "solution": "קמח", "explanation": "" },
-    { "definition": "בקתה (4)", "solution": "צריף", "explanation": "" },
-    { "definition": "בר (2)", "solution": "נקי", "explanation": "" },
-    { "definition": "בר (2)", "solution": "חוץ", "explanation": "" },
-    { "definition": "בר (2)", "solution": "בן", "explanation": "" },
-    { "definition": "בר אוריין (4)", "solution": "למדן", "explanation": "" },
-    { "definition": "בר בי רב (4)", "solution": "תלמיד", "explanation": "" },
-    { "definition": "בר דעת (4)", "solution": "חכם", "explanation": "" },
-    { "definition": "בר חלוף (4)", "solution": "זמני", "explanation": "" },
-    { "definition": "בר לבב (4)", "solution": "ישר", "explanation": "" },
-    { "definition": "בר מזל (4)", "solution": "מצליח", "explanation": "" },
-    { "definition": "בר מינן (4)", "solution": "מת", "explanation": "" },
-    { "definition": "בר סמכא (4)", "solution": "מומחה", "explanation": "" },
-    { "definition": "ברא (3)", "solution": "יצר", "explanation": "" },
-    { "definition": "בראשית (4)", "solution": "תחילה", "explanation": "" },
-    { "definition": "ברבור (4)", "solution": "עוף", "explanation": "" },
-    { "definition": "ברבוניה (4)", "solution": "דג", "explanation": "" },
-    { "definition": "ברד (3)", "solution": "קרח", "explanation": "" },
-    { "definition": "ברדס (4)", "solution": "קפושון", "explanation": "" },
-    { "definition": "ברווז (4)", "solution": "עוף", "explanation": "" },
-    { "definition": "ברוך (4)", "solution": "צרה", "explanation": "" },
-    { "definition": "ברור (4)", "solution": "נהיר", "explanation": "" },
-    { "definition": "ברוש (4)", "solution": "עץ", "explanation": "" },
-    { "definition": "ברז (3)", "solution": "ברז", "explanation": "" },
-    { "definition": "ברזל (4)", "solution": "מתכת", "explanation": "" },
-    { "definition": "ברח (3)", "solution": "נס", "explanation": "" },
-    { "definition": "ברחה (4)", "solution": "מנוסה", "explanation": "" },
-    { "definition": "בריאה (4)", "solution": "יצירה", "explanation": "" },
-    { "definition": "בריאות (4)", "solution": "חוסן", "explanation": "" },
-    { "definition": "בריזה (4)", "solution": "רוח", "explanation": "" },
-    { "definition": "בריח (4)", "solution": "מנעול", "explanation": "" },
-    { "definition": "בריחה (4)", "solution": "מנוסה", "explanation": "" },
-    { "definition": "בריטניה (4)", "solution": "אנגליה", "explanation": "" },
-    { "definition": "ברירה (4)", "solution": "בחירה", "explanation": "" },
-    { "definition": "ברית (4)", "solution": "חוזה", "explanation": "" },
-    { "definition": "ברך (3)", "solution": "הודה", "explanation": "" },
-    { "definition": "ברכה (4)", "solution": "בריכה", "explanation": "" },
-    { "definition": "ברם (3)", "solution": "אבל", "explanation": "" },
-    { "definition": "ברנש (4)", "solution": "טיפוס", "explanation": "" },
-    { "definition": "ברס (3)", "solution": "מחק", "explanation": "" },
-    { "definition": "ברק (3)", "solution": "זהר", "explanation": "" },
-    { "definition": "ברקת (4)", "solution": "אבן", "explanation": "" },
-    { "definition": "ברשות (4)", "solution": "בהיתר", "explanation": "" },
-    { "definition": "ברשלנות (4)", "solution": "רשלני", "explanation": "" },
-    { "definition": "בשר (3)", "solution": "אוכל", "explanation": "" },
-    { "definition": "בשורה (4)", "solution": "ידיעה", "explanation": "" },
-    { "definition": "בשורות (4)", "solution": "חדשות", "explanation": "" },
-    { "definition": "בשורה טובה (4)", "solution": "חג", "explanation": "" },
-    { "definition": "בשחוק (4)", "solution": "צחוק", "explanation": "" },
-    { "definition": "בשיא (4)", "solution": "שיא", "explanation": "" },
-    { "definition": "בשל (3)", "solution": "מוכן", "explanation": "" },
-    { "definition": "בשל (3)", "solution": "בגלל", "explanation": "" },
-    { "definition": "בשלב (4)", "solution": "בזמן", "explanation": "" },
-    { "definition": "בשלמות (4)", "solution": "תום", "explanation": "" },
-    { "definition": "בשפע (4)", "solution": "הרבה", "explanation": "" },
-    { "definition": "בשת (3)", "solution": "בושה", "explanation": "" },
-    { "definition": "בת (2)", "solution": "ילדה", "explanation": "" },
-    { "definition": "בת קול (4)", "solution": "הד", "explanation": "" },
-    { "definition": "בת קול (4)", "solution": "צליל", "explanation": "" },
-    { "definition": "בתואל (4)", "solution": "אדם", "explanation": "" },
-    { "definition": "בתולה (4)", "solution": "מזל", "explanation": "" },
-    { "definition": "בתחילה (4)", "solution": "קודם", "explanation": "" },
-    { "definition": "בתוך (4)", "solution": "בפנים", "explanation": "" },
-    { "definition": "בתוכו (4)", "solution": "בפנים", "explanation": "" },
-    { "definition": "בתיאבון (4)", "solution": "אוכל", "explanation": "" },
-    { "definition": "בתיאום (4)", "solution": "יחד", "explanation": "" },
-    { "definition": "בתימהון (4)", "solution": "פלא", "explanation": "" },
-    { "definition": "בתים (4)", "solution": "מגורים", "explanation": "" },
-    { "definition": "בתירה (4)", "solution": "חיתוך", "explanation": "" },
-    { "definition": "בתיקו (4)", "solution": "שוויון", "explanation": "" },
-    { "definition": "בתר (3)", "solution": "חתך", "explanation": "" },
-    { "definition": "גא (2)", "solution": "יהיר", "explanation": "" },
-    { "definition": "גאון (4)", "solution": "עילוי", "explanation": "" },
-    { "definition": "גאולה (4)", "solution": "ישועה", "explanation": "" },
-    { "definition": "גאה (3)", "solution": "עלה", "explanation": "" },
-    { "definition": "גאוותן (4)", "solution": "יהיר", "explanation": "" },
-    { "definition": "גאלה (4)", "solution": "מסיבה", "explanation": "" },
-    { "definition": "גב (2)", "solution": "גבש", "explanation": "" },
-    { "definition": "גב (2)", "solution": "חור", "explanation": "" },
-    { "definition": "גבא (3)", "solution": "גבאי", "explanation": "" },
-    { "definition": "גבאי (4)", "solution": "שמש", "explanation": "" },
-    { "definition": "גבש (3)", "solution": "איחד", "explanation": "" },
-    { "definition": "גבה (3)", "solution": "עלה", "explanation": "" },
-    { "definition": "גבוה (4)", "solution": "רם", "explanation": "" },
-    { "definition": "גבול (4)", "solution": "סייג", "explanation": "" },
-    { "definition": "גבורה (4)", "solution": "אומץ", "explanation": "" },
-    { "definition": "גבינה (4)", "solution": "מזון", "explanation": "" },
-    { "definition": "גבינה צהובה (4)", "solution": "עמק", "explanation": "" },
-    { "definition": "גבינת עזים (4)", "solution": "פרו", "explanation": "" },
-    { "definition": "גביר (4)", "solution": "עשיר", "explanation": "" },
-    { "definition": "גבירה (4)", "solution": "אישה", "explanation": "" },
-    { "definition": "גביש (4)", "solution": "קריסטל", "explanation": "" },
-    { "definition": "גבל (3)", "solution": "תחם", "explanation": "" },
-    { "definition": "גבן (3)", "solution": "ייצר", "explanation": "" },
-    { "definition": "גבנון (4)", "solution": "דבשת", "explanation": "" },
-    { "definition": "גבר (3)", "solution": "איש", "explanation": "" },
-    { "definition": "גבר (3)", "solution": "ניצח", "explanation": "" },
-    { "definition": "גברת (4)", "solution": "אישה", "explanation": "" },
-    { "definition": "גברת (4)", "solution": "מדאם", "explanation": "" },
-    { "definition": "גג (2)", "solution": "כיסוי", "explanation": "" },
-    { "definition": "גד (2)", "solution": "מזל", "explanation": "" },
-    { "definition": "גדה (3)", "solution": "חוף", "explanation": "" },
-    { "definition": "גדוש (4)", "solution": "מלא", "explanation": "" },
-    { "definition": "גדי (3)", "solution": "עז", "explanation": "" },
-    { "definition": "גדיל (4)", "solution": "ציצית", "explanation": "" },
-    { "definition": "גדילה (4)", "solution": "צמיחה", "explanation": "" },
-    { "definition": "גדר (3)", "solution": "חיץ", "explanation": "" },
-    { "definition": "גדר (3)", "solution": "תחם", "explanation": "" },
-    { "definition": "גודל (4)", "solution": "מידה", "explanation": "" },
-    { "definition": "גווע (4)", "solution": "מת", "explanation": "" },
-    { "definition": "גוזז (4)", "solution": "גוזר", "explanation": "" },
-    { "definition": "גוזל (4)", "solution": "אפרוח", "explanation": "" },
-    { "definition": "גוזל (4)", "solution": "חומס", "explanation": "" },
-    { "definition": "גוטה (4)", "solution": "יופי", "explanation": "" },
-    { "definition": "גוי (2)", "solution": "עם", "explanation": "" },
-    { "definition": "גויל (4)", "solution": "קלף", "explanation": "" },
-    { "definition": "גולם (4)", "solution": "טיפש", "explanation": "" },
-    { "definition": "גומחה (4)", "solution": "נישה", "explanation": "" },
-    { "definition": "גומץ (4)", "solution": "בור", "explanation": "" },
-    { "definition": "גון (2)", "solution": "צבע", "explanation": "" },
-    { "definition": "גונן (4)", "solution": "הגן", "explanation": "" },
-    { "definition": "גוף (2)", "solution": "בשר", "explanation": "" },
-    { "definition": "גופיה (4)", "solution": "בגד", "explanation": "" },
-    { "definition": "גופני (4)", "solution": "פיזי", "explanation": "" },
-    { "definition": "גור (2)", "solution": "ולד", "explanation": "" },
-    { "definition": "גורל (4)", "solution": "מזל", "explanation": "" },
-    { "definition": "גורל (4)", "solution": "פור", "explanation": "" },
-    { "definition": "גורמה (4)", "solution": "טעים", "explanation": "" },
-    { "definition": "גורן (4)", "solution": "מקום", "explanation": "" },
-    { "definition": "גורנישט (4)", "solution": "כלום", "explanation": "" },
-    { "definition": "גוש (2)", "solution": "חבל", "explanation": "" },
-    { "definition": "גוש (2)", "solution": "נתח", "explanation": "" },
-    { "definition": "גושפנקה (4)", "solution": "אישור", "explanation": "" },
-    { "definition": "גז (2)", "solution": "נעלם", "explanation": "" },
-    { "definition": "גזז (3)", "solution": "גזר", "explanation": "" },
-    { "definition": "גזזת (4)", "solution": "מחלה", "explanation": "" },
-    { "definition": "גזיר (4)", "solution": "חתיכה", "explanation": "" },
-    { "definition": "גזירה (4)", "solution": "חוק", "explanation": "" },
-    { "definition": "גזל (3)", "solution": "שדד", "explanation": "" },
-    { "definition": "גזלן (4)", "solution": "שודד", "explanation": "" },
-    { "definition": "גזע (3)", "solution": "מוצא", "explanation": "" },
-    { "definition": "גזען (4)", "solution": "שונא", "explanation": "" },
-    { "definition": "גזר (3)", "solution": "חתך", "explanation": "" },
-    { "definition": "גזר (3)", "solution": "ירק", "explanation": "" },
-    { "definition": "גזרה (4)", "solution": "חוק", "explanation": "" },
-    { "definition": "גזרה (4)", "solution": "מראה", "explanation": "" },
-    { "definition": "גחון (4)", "solution": "בטן", "explanation": "" },
-    { "definition": "גחלילית (4)", "solution": "חרק", "explanation": "" },
-    { "definition": "גחמה (4)", "solution": "קפריזה", "explanation": "" },
-    { "definition": "גחן (3)", "solution": "רכן", "explanation": "" },
-    { "definition": "גיא (2)", "solution": "עמק", "explanation": "" },
-    { "definition": "גיבוב (4)", "solution": "אוסף", "explanation": "" },
-    { "definition": "גיבוש (4)", "solution": "איחוד", "explanation": "" },
-    { "definition": "גיבור (4)", "solution": "נועז", "explanation": "" },
-    { "definition": "גיבנת (4)", "solution": "חטוטרת", "explanation": "" },
-    { "definition": "גיד (2)", "solution": "חבל", "explanation": "" },
-    { "definition": "גידולי שדה (4)", "solution": "תוצרת", "explanation": "" },
-    { "definition": "גידופים (4)", "solution": "קללות", "explanation": "" },
-    { "definition": "גידוף (4)", "solution": "קללה", "explanation": "" },
-    { "definition": "גיחה (4)", "solution": "יציאה", "explanation": "" },
-    { "definition": "גיחוך (4)", "solution": "צחוק", "explanation": "" },
-    { "definition": "גיור (4)", "solution": "שינוי", "explanation": "" },
-    { "definition": "גייס (4)", "solution": "אסף", "explanation": "" },
-    { "definition": "גיל (2)", "solution": "שמחה", "explanation": "" },
-    { "definition": "גיל (2)", "solution": "שנים", "explanation": "" },
-    { "definition": "גילדה (4)", "solution": "איגוד", "explanation": "" },
-    { "definition": "גילוי (4)", "solution": "חשיפה", "explanation": "" },
-    { "definition": "גילוי דעת (4)", "solution": "מכתב", "explanation": "" },
-    { "definition": "גילון (4)", "solution": "דף", "explanation": "" },
-    { "definition": "גילוי (4)", "solution": "איתור", "explanation": "" },
-    { "definition": "גיליוטינה (4)", "solution": "מערפת", "explanation": "" },
-    { "definition": "גיליון (4)", "solution": "כתב", "explanation": "" },
-    { "definition": "גילם (4)", "solution": "ייצג", "explanation": "" },
-    { "definition": "גימור (4)", "solution": "סוף", "explanation": "" },
-    { "definition": "גימטרייה (4)", "solution": "מספר", "explanation": "" },
-    { "definition": "גימלה (4)", "solution": "פנסיה", "explanation": "" },
-    { "definition": "גינה (4)", "solution": "גן", "explanation": "" },
-    { "definition": "גינה (4)", "solution": "הוקיע", "explanation": "" },
-    { "definition": "גינוי (4)", "solution": "הוקעה", "explanation": "" },
-    { "definition": "גינונים (4)", "solution": "נימוס", "explanation": "" },
-    { "definition": "גינזק (4)", "solution": "ארכיון", "explanation": "" },
-    { "definition": "גיס (2)", "solution": "קרוב", "explanation": "" },
-    { "definition": "גישור (4)", "solution": "פישור", "explanation": "" },
-    { "definition": "גישה (4)", "solution": "דרך", "explanation": "" },
-    { "definition": "גישור (4)", "solution": "חיבור", "explanation": "" },
-    { "definition": "גיתית (4)", "solution": "נבל", "explanation": "" },
-    { "definition": "גיר (2)", "solution": "אבן", "explanation": "" },
-    { "definition": "גל (2)", "solution": "נחשול", "explanation": "" },
-    { "definition": "גלאי (4)", "solution": "מכשיר", "explanation": "" },
-    { "definition": "גלאקסי (4)", "solution": "חלל", "explanation": "" },
-    { "definition": "גלב (3)", "solution": "ספר", "explanation": "" },
-    { "definition": "גלגול (4)", "solution": "שינוי", "explanation": "" },
-    { "definition": "גלגל (4)", "solution": "אופן", "explanation": "" },
-    { "definition": "גלגלת (4)", "solution": "גולגולת", "explanation": "" },
-    { "definition": "גלה (3)", "solution": "נדד", "explanation": "" },
-    { "definition": "גלובוס (4)", "solution": "עולם", "explanation": "" },
-    { "definition": "גלובלי (4)", "solution": "עולמי", "explanation": "" },
-    { "definition": "גלויות (4)", "solution": "מכתב", "explanation": "" },
-    { "definition": "גלוי (4)", "solution": "מוחצן", "explanation": "" },
-    { "definition": "גלולה (4)", "solution": "תרופה", "explanation": "" },
-    { "definition": "גלום (4)", "solution": "חבוי", "explanation": "" },
-    { "definition": "גלון (4)", "solution": "מידה", "explanation": "" },
-    { "definition": "גלות (4)", "solution": "נדודים", "explanation": "" },
-    { "definition": "גלי (2)", "solution": "חשוף", "explanation": "" },
-    { "definition": "גלידה (4)", "solution": "ממתק", "explanation": "" },
-    { "definition": "גלידרייה (4)", "solution": "חנות", "explanation": "" },
-    { "definition": "גליל (4)", "solution": "אזור", "explanation": "" },
-    { "definition": "גלימה (4)", "solution": "בגד", "explanation": "" },
-    { "definition": "גליון (4)", "solution": "דף", "explanation": "" },
-    { "definition": "גלישה (4)", "solution": "סקי", "explanation": "" },
-    { "definition": "גלם (3)", "solution": "חומר", "explanation": "" },
-    { "definition": "גלעד (4)", "solution": "מצבה", "explanation": "" },
-    { "definition": "גלף (3)", "solution": "חרט", "explanation": "" },
-    { "definition": "גלריה (4)", "solution": "חנות", "explanation": "" },
-    { "definition": "גלת (3)", "solution": "גלל", "explanation": "" },
-    { "definition": "גם (2)", "solution": "אף", "explanation": "" },
-    { "definition": "גמא (3)", "solution": "גמע", "explanation": "" },
-    { "definition": "גמאל (4)", "solution": "גמל", "explanation": "" },
-    { "definition": "גמבו (4)", "solution": "ירק", "explanation": "" },
-    { "definition": "גמד (3)", "solution": "ננס", "explanation": "" },
-    { "definition": "גמה (3)", "solution": "חשק", "explanation": "" },
-    { "definition": "גמו (3)", "solution": "גמל", "explanation": "" },
-    { "definition": "גמול (4)", "solution": "שכר", "explanation": "" },
-    { "definition": "גמון (4)", "solution": "ננס", "explanation": "" },
-    { "definition": "גמורה (4)", "solution": "סופית", "explanation": "" },
-    { "definition": "גמטריה (4)", "solution": "חשבון", "explanation": "" },
-    { "definition": "גמיש (4)", "solution": "רך", "explanation": "" },
-    { "definition": "גמל (3)", "solution": "חיה", "explanation": "" },
-    { "definition": "גמל (3)", "solution": "שילם", "explanation": "" },
-    { "definition": "גמלא (4)", "solution": "הר", "explanation": "" },
-    { "definition": "גמלה (4)", "solution": "קצבה", "explanation": "" },
-    { "definition": "גמר (3)", "solution": "סוף", "explanation": "" },
-    { "definition": "גמר (3)", "solution": "סיים", "explanation": "" },
-    { "definition": "גן (2)", "solution": "בוסתן", "explanation": "" },
-    { "definition": "גנב (3)", "solution": "סחב", "explanation": "" },
-    { "definition": "גנב (3)", "solution": "גזל", "explanation": "" },
-    { "definition": "גנב דעת (4)", "solution": "רימה", "explanation": "" },
-    { "definition": "גנדרן (4)", "solution": "הדור", "explanation": "" },
-    { "definition": "גנה (3)", "solution": "הוקיע", "explanation": "" },
-    { "definition": "גנז (3)", "solution": "שמר", "explanation": "" },
-    { "definition": "גנזך (4)", "solution": "ארכיון", "explanation": "" },
-    { "definition": "גננ (3)", "solution": "הגן", "explanation": "" },
-    { "definition": "גניבה (4)", "solution": "גזלה", "explanation": "" },
-    { "definition": "גננת (4)", "solution": "מורה", "explanation": "" },
-    { "definition": "גס (2)", "solution": "חצוף", "explanation": "" },
-    { "definition": "גסה (3)", "solution": "מתה", "explanation": "" },
-    { "definition": "גסיסה (4)", "solution": "גווע", "explanation": "" },
-    { "definition": "גער (3)", "solution": "נזף", "explanation": "" },
-    { "definition": "גערה (4)", "solution": "נזיפה", "explanation": "" },
-    { "definition": "גף (2)", "solution": "גוף", "explanation": "" },
-    { "definition": "גפן (3)", "solution": "צמח", "explanation": "" },
-    { "definition": "גפרור (4)", "solution": "אש", "explanation": "" },
-    { "definition": "גץ (2)", "solution": "ניצוץ", "explanation": "" },
-    { "definition": "גפר (3)", "solution": "כיפר", "explanation": "" },
-    { "definition": "גפיר (4)", "solution": "שומר", "explanation": "" },
-    { "definition": "גר (2)", "solution": "תושב", "explanation": "" },
-    { "definition": "גראד (4)", "solution": "טיל", "explanation": "" },
-    { "definition": "גרב (3)", "solution": "לבוש", "explanation": "" },
-    { "definition": "גרביטציה (4)", "solution": "משיכה", "explanation": "" },
-    { "definition": "גרגר (4)", "solution": "זרע", "explanation": "" },
-    { "definition": "גרגרן (4)", "solution": "זללן", "explanation": "" },
-    { "definition": "גרד (3)", "solution": "גירד", "explanation": "" },
-    { "definition": "גרה (3)", "solution": "עורר", "explanation": "" },
-    { "definition": "גרוטאה (4)", "solution": "גרוטאה", "explanation": "" },
-    { "definition": "גרוטסקי (4)", "solution": "מוזר", "explanation": "" },
-    { "definition": "גרוי (4)", "solution": "גירוי", "explanation": "" },
-    { "definition": "גרוע (4)", "solution": "רע", "explanation": "" },
-    { "definition": "גרוש (4)", "solution": "פרוטה", "explanation": "" },
-    { "definition": "גרוש (4)", "solution": "נפרד", "explanation": "" },
-    { "definition": "גרושיה (4)", "solution": "מגרש", "explanation": "" },
-    { "definition": "גרזן (4)", "solution": "כלי", "explanation": "" },
-    { "definition": "גרט (3)", "solution": "מחק", "explanation": "" },
-    { "definition": "גרידא (4)", "solution": "בלבד", "explanation": "" },
-    { "definition": "גריז (4)", "solution": "שמן", "explanation": "" },
-    { "definition": "גריל (4)", "solution": "מתקן", "explanation": "" },
-    { "definition": "גרילה (4)", "solution": "לוחמה", "explanation": "" },
-    { "definition": "גרימת נזק (4)", "solution": "חבלה", "explanation": "" },
-    { "definition": "גריסה (4)", "solution": "טחינה", "explanation": "" },
-    { "definition": "גריע (4)", "solution": "גרע", "explanation": "" },
-    { "definition": "גריעה (4)", "solution": "חיסור", "explanation": "" },
-    { "definition": "גרם (3)", "solution": "עצם", "explanation": "" },
-    { "definition": "גרם (3)", "solution": "סיבה", "explanation": "" },
-    { "definition": "גרמה (4)", "solution": "גרם", "explanation": "" },
-    { "definition": "גרמניה (4)", "solution": "מדינה", "explanation": "" },
-    { "definition": "גרע (3)", "solution": "החסיר", "explanation": "" },
-    { "definition": "גרעין (4)", "solution": "זרע", "explanation": "" },
-    { "definition": "גרף (3)", "solution": "אסף", "explanation": "" },
-    { "definition": "גרף (3)", "solution": "תרשים", "explanation": "" },
-    { "definition": "גרפיקה (4)", "solution": "איור", "explanation": "" },
-    { "definition": "גרפולוג (4)", "solution": "חוקר", "explanation": "" },
-    { "definition": "גרציות (4)", "solution": "בנות", "explanation": "" },
-    { "definition": "גרש (3)", "solution": "סילק", "explanation": "" },
-    { "definition": "גשר (3)", "solution": "מעבר", "explanation": "" },
-    { "definition": "גת (2)", "solution": "בור", "explanation": "" },
-    { "definition": "גת (2)", "solution": "צמח", "explanation": "" },
-    { "definition": "דא (2)", "solution": "זה", "explanation": "" },
-    { "definition": "דאב (3)", "solution": "כאב", "explanation": "" },
-    { "definition": "דאגה (4)", "solution": "חשש", "explanation": "" },
-    { "definition": "דאג (3)", "solution": "חשש", "explanation": "" },
-    { "definition": "דאדא (4)", "solution": "אמנות", "explanation": "" },
-    { "definition": "דאה (3)", "solution": "טס", "explanation": "" },
-    { "definition": "דאון (4)", "solution": "מטוס", "explanation": "" },
-    { "definition": "דאטום (4)", "solution": "נתון", "explanation": "" },
-    { "definition": "דאייה (4)", "solution": "טיסה", "explanation": "" },
-    { "definition": "דא עקא (4)", "solution": "אבל", "explanation": "" },
-    { "definition": "דב (2)", "solution": "חיה", "explanation": "" },
-    { "definition": "דבא (3)", "solution": "שומן", "explanation": "" },
-    { "definition": "דבב (3)", "solution": "דיבר", "explanation": "" },
-    { "definition": "דבה (3)", "solution": "שקר", "explanation": "" },
-    { "definition": "דבוקה (4)", "solution": "צרור", "explanation": "" },
-    { "definition": "דבורה (4)", "solution": "חרק", "explanation": "" },
-    { "definition": "דבורה (4)", "solution": "נביאה", "explanation": "" },
-    { "definition": "דב חום (4)", "solution": "סורי", "explanation": "" },
-    { "definition": "דבל (3)", "solution": "תאנה", "explanation": "" },
-    { "definition": "דבלה (4)", "solution": "תאנה", "explanation": "" },
-    { "definition": "דבק (3)", "solution": "צמוד", "explanation": "" },
-    { "definition": "דבק (3)", "solution": "חיבר", "explanation": "" },
-    { "definition": "דבש (3)", "solution": "מתוק", "explanation": "" },
-    { "definition": "דג (2)", "solution": "חיה", "explanation": "" },
-    { "definition": "דג זהב (4)", "solution": "מזל", "explanation": "" },
-    { "definition": "דג חרב (4)", "solution": "דג", "explanation": "" },
-    { "definition": "דג מלוח (4)", "solution": "מליח", "explanation": "" },
-    { "definition": "דג קרב (4)", "solution": "דג", "explanation": "" },
-    { "definition": "דגול (4)", "solution": "חשוב", "explanation": "" },
-    { "definition": "דגם (3)", "solution": "מופת", "explanation": "" },
-    { "definition": "דגן (3)", "solution": "תבואה", "explanation": "" },
-    { "definition": "דגנית (4)", "solution": "פרח", "explanation": "" },
-    { "definition": "דגל (3)", "solution": "נס", "explanation": "" },
-    { "definition": "דגל (3)", "solution": "ייצג", "explanation": "" },
-    { "definition": "דגירה (4)", "solution": "חימום", "explanation": "" },
-    { "definition": "דגש (3)", "solution": "הדגשה", "explanation": "" },
-    { "definition": "דד (2)", "solution": "שד", "explanation": "" },
-    { "definition": "דדה (3)", "solution": "פסע", "explanation": "" },
-    { "definition": "דדוקציה (4)", "solution": "הקשה", "explanation": "" },
-    { "definition": "דדי (3)", "solution": "משותף", "explanation": "" },
-    { "definition": "דה (2)", "solution": "זה", "explanation": "" },
-    { "definition": "דהב (3)", "solution": "זהב", "explanation": "" },
-    { "definition": "דהה (3)", "solution": "הלבין", "explanation": "" },
-    { "definition": "דהויה (4)", "solution": "חיוורת", "explanation": "" },
-    { "definition": "דהור (4)", "solution": "רץ", "explanation": "" },
-    { "definition": "דהייה (4)", "solution": "שינוי", "explanation": "" },
-    { "definition": "דהירה (4)", "solution": "ריצה", "explanation": "" },
-    { "definition": "דה פקטו (4)", "solution": "בפועל", "explanation": "" },
-    { "definition": "דהר (3)", "solution": "רץ", "explanation": "" },
-    { "definition": "דו (2)", "solution": "שניים", "explanation": "" },
-    { "definition": "דואט (4)", "solution": "צמד", "explanation": "" },
-    { "definition": "דואל (4)", "solution": "מכתב", "explanation": "" },
-    { "definition": "דוב (3)", "solution": "חיה", "explanation": "" },
-    { "definition": "דוברה (4)", "solution": "רפסודה", "explanation": "" },
-    { "definition": "דובשנית (4)", "solution": "ממתק", "explanation": "" },
-    { "definition": "דוגמה (4)", "solution": "מופת", "explanation": "" },
-    { "definition": "דוגמנית (4)", "solution": "דמות", "explanation": "" },
-    { "definition": "דוברה (4)", "solution": "אסדה", "explanation": "" },
-    { "definition": "דו-גלגלי (4)", "solution": "רכב", "explanation": "" },
-    { "definition": "דוד (3)", "solution": "סיר", "explanation": "" },
-    { "definition": "דוד (3)", "solution": "קרוב", "explanation": "" },
-    { "definition": "דוד (3)", "solution": "שמש", "explanation": "" },
-    { "definition": "דו-דופן (4)", "solution": "סירה", "explanation": "" },
-    { "definition": "דו-דו-שיח (4)", "solution": "שיח", "explanation": "" },
-    { "definition": "דו-הברתי (4)", "solution": "מילה", "explanation": "" },
-    { "definition": "דו-חי (4)", "solution": "צפרדע", "explanation": "" },
-    { "definition": "דו-לשוני (4)", "solution": "שפה", "explanation": "" },
-    { "definition": "דו-משמעי (4)", "solution": "כפול", "explanation": "" },
-    { "definition": "דונה (4)", "solution": "גברת", "explanation": "" },
-    { "definition": "דוניה (4)", "solution": "עולם", "explanation": "" },
-    { "definition": "דונם (4)", "solution": "שטח", "explanation": "" },
-    { "definition": "דופי (4)", "solution": "פגם", "explanation": "" },
-    { "definition": "דופק (4)", "solution": "לב", "explanation": "" },
-    { "definition": "דוק (3)", "solution": "קרום", "explanation": "" },
-    { "definition": "דווקא (4)", "solution": "להכעיס", "explanation": "" },
-    { "definition": "דור (2)", "solution": "תקופה", "explanation": "" },
-    { "definition": "דורון (4)", "solution": "מתנה", "explanation": "" },
-    { "definition": "דורך (4)", "solution": "דורך", "explanation": "" },
-    { "definition": "דורס (4)", "solution": "עוף", "explanation": "" },
-    { "definition": "דוש (3)", "solution": "מקלחת", "explanation": "" },
-    { "definition": "דו-שיח (4)", "solution": "דיאלוג", "explanation": "" },
-    { "definition": "דחוס (4)", "solution": "צפוף", "explanation": "" },
-    { "definition": "דחוק (4)", "solution": "צפוף", "explanation": "" },
-    { "definition": "דחייה (4)", "solution": "ביטול", "explanation": "" },
-    { "definition": "דחייה (4)", "solution": "עיכוב", "explanation": "" },
-    { "definition": "דחף (3)", "solution": "עורר", "explanation": "" },
-    { "definition": "דחף (3)", "solution": "מניע", "explanation": "" },
-    { "definition": "דחק (3)", "solution": "לחץ", "explanation": "" },
-    { "definition": "דטרמיניזם (4)", "solution": "גורל", "explanation": "" },
-    { "definition": "די (2)", "solution": "מספיק", "explanation": "" },
-    { "definition": "דיאגנוזה (4)", "solution": "אבחנה", "explanation": "" },
-    { "definition": "דיאגרמה (4)", "solution": "תרשים", "explanation": "" },
-    { "definition": "דיאטה (4)", "solution": "תזונה", "explanation": "" },
-    { "definition": "דיאלוג (4)", "solution": "שיח", "explanation": "" },
-    { "definition": "דיבבה (4)", "solution": "שיחה", "explanation": "" },
-    { "definition": "דיבוק (4)", "solution": "שד", "explanation": "" },
-    { "definition": "דיבור (4)", "solution": "הגה", "explanation": "" },
-    { "definition": "דיבורית (4)", "solution": "שמע", "explanation": "" },
-    { "definition": "דיבה (4)", "solution": "לעז", "explanation": "" },
-    { "definition": "דיבידנד (4)", "solution": "רווח", "explanation": "" },
-    { "definition": "דיבוב (4)", "solution": "קול", "explanation": "" },
-    { "definition": "דיג (2)", "solution": "ציד", "explanation": "" },
-    { "definition": "דיוניסוס (4)", "solution": "אל", "explanation": "" },
-    { "definition": "דיוק (4)", "solution": "אמת", "explanation": "" },
-    { "definition": "דיור (4)", "solution": "בית", "explanation": "" },
-    { "definition": "דייג (4)", "solution": "צייד", "explanation": "" },
-    { "definition": "דיין (4)", "solution": "שופט", "explanation": "" },
-    { "definition": "דייסה (4)", "solution": "מאכל", "explanation": "" },
-    { "definition": "דיכוי (4)", "solution": "עינוי", "explanation": "" },
-    { "definition": "דימוי (4)", "solution": "משל", "explanation": "" },
-    { "definition": "דימום (4)", "solution": "פצע", "explanation": "" },
-    { "definition": "דינמי (4)", "solution": "פעיל", "explanation": "" },
-    { "definition": "דינמיט (4)", "solution": "חומר", "explanation": "" },
-    { "definition": "דין (2)", "solution": "חוק", "explanation": "" },
-    { "definition": "דין וחשבון (4)", "solution": "דוח", "explanation": "" },
-    { "definition": "דיסקרטי (4)", "solution": "חשאי", "explanation": "" },
-    { "definition": "דירה (4)", "solution": "מעון", "explanation": "" },
-    { "definition": "דירוג (4)", "solution": "סדר", "explanation": "" },
-    { "definition": "דכדדוך (4)", "solution": "עצב", "explanation": "" },
-    { "definition": "דכא (3)", "solution": "עינה", "explanation": "" },
-    { "definition": "דל (2)", "solution": "עני", "explanation": "" },
-    { "definition": "דלה (3)", "solution": "שאב", "explanation": "" },
-    { "definition": "דלג (3)", "solution": "קפץ", "explanation": "" },
-    { "definition": "דלוח (4)", "solution": "עכור", "explanation": "" },
-    { "definition": "דלי (3)", "solution": "מזל", "explanation": "" },
-    { "definition": "דלי (3)", "solution": "כלי", "explanation": "" },
-    { "definition": "דליקה (4)", "solution": "אש", "explanation": "" },
-    { "definition": "דליק (4)", "solution": "נפיץ", "explanation": "" },
-    { "definition": "דלל (3)", "solution": "הפחית", "explanation": "" },
-    { "definition": "דלף (3)", "solution": "נזל", "explanation": "" },
-    { "definition": "דלפק (4)", "solution": "דוכן", "explanation": "" },
-    { "definition": "דלעת (4)", "solution": "ירק", "explanation": "" },
-    { "definition": "דם (2)", "solution": "נוזל", "explanation": "" },
-    { "definition": "דמדומי ערב (4)", "solution": "בין", "explanation": "" },
-    { "definition": "דמה (3)", "solution": "נמשל", "explanation": "" },
-    { "definition": "דמוקרטיה (4)", "solution": "חופש", "explanation": "" },
-    { "definition": "דמות (4)", "solution": "צורה", "explanation": "" },
-    { "definition": "דמיוני (4)", "solution": "כוזב", "explanation": "" },
-    { "definition": "דמים (4)", "solution": "כסף", "explanation": "" },
-    { "definition": "דמיון (4)", "solution": "היקש", "explanation": "" },
-    { "definition": "דמם (3)", "solution": "שתק", "explanation": "" },
-    { "definition": "דמעה (4)", "solution": "בכי", "explanation": "" },
-    { "definition": "דמע (3)", "solution": "בכה", "explanation": "" },
-    { "definition": "דן (2)", "solution": "שפט", "explanation": "" },
-    { "definition": "דנה (3)", "solution": "שפטה", "explanation": "" },
-    { "definition": "דנדון (4)", "solution": "צליל", "explanation": "" },
-    { "definition": "דני (3)", "solution": "שם", "explanation": "" },
-    { "definition": "דנס (3)", "solution": "ריקוד", "explanation": "" },
-    { "definition": "דעה (3)", "solution": "מחשבה", "explanation": "" },
-    { "definition": "דעך (3)", "solution": "כבה", "explanation": "" },
-    { "definition": "דעם (3)", "solution": "כעס", "explanation": "" },
-    { "definition": "דעת (3)", "solution": "שכל", "explanation": "" },
-    { "definition": "דף (2)", "solution": "עמוד", "explanation": "" },
-    { "definition": "דפדף (4)", "solution": "חיפש", "explanation": "" },
-    { "definition": "דפוס (4)", "solution": "תבנית", "explanation": "" },
-    { "definition": "דפיקה (4)", "solution": "מכה", "explanation": "" },
-    { "definition": "דפנה (4)", "solution": "קיר", "explanation": "" },
-    { "definition": "דפנה (4)", "solution": "צמח", "explanation": "" },
-    { "definition": "דפק (3)", "solution": "הכה", "explanation": "" },
-    { "definition": "דפקט (4)", "solution": "פגם", "explanation": "" },
-    { "definition": "דוקטרינה (4)", "solution": "תורה", "explanation": "" },
-    { "definition": "דפר (3)", "solution": "ציון", "explanation": "" },
-    { "definition": "דץ (2)", "solution": "שמח", "explanation": "" },
-    { "definition": "דק (2)", "solution": "קלוש", "explanation": "" },
-    { "definition": "דק (2)", "solution": "עדין", "explanation": "" },
-    { "definition": "דקה (3)", "solution": "זמן", "explanation": "" },
-    { "definition": "דקירה (4)", "solution": "פצע", "explanation": "" },
-    { "definition": "דקל (3)", "solution": "עץ", "explanation": "" },
-    { "definition": "דקורציה (4)", "solution": "קישוט", "explanation": "" },
-    { "definition": "דוקרני (4)", "solution": "קוצני", "explanation": "" },
-    { "definition": "דראמה (4)", "solution": "מחזה", "explanation": "" },
-    { "definition": "דרבון (4)", "solution": "עידוד", "explanation": "" },
-    { "definition": "דרבן (4)", "solution": "חיה", "explanation": "" },
-    { "definition": "דרג (3)", "solution": "מעמד", "explanation": "" },
-    { "definition": "דרגה (4)", "solution": "שלב", "explanation": "" },
-    { "definition": "דרדר (4)", "solution": "קוץ", "explanation": "" },
-    { "definition": "דרה (3)", "solution": "גרה", "explanation": "" },
-    { "definition": "דרוג (4)", "solution": "סדר", "explanation": "" },
-    { "definition": "דרום (4)", "solution": "כיוון", "explanation": "" },
-    { "definition": "דרוס (4)", "solution": "פגוע", "explanation": "" },
-    { "definition": "דרור (4)", "solution": "חופש", "explanation": "" },
-    { "definition": "דרור (4)", "solution": "ציפור", "explanation": "" },
-    { "definition": "דרוש (4)", "solution": "נחוץ", "explanation": "" },
-    { "definition": "דריכות (4)", "solution": "מתח", "explanation": "" },
-    { "definition": "דריסה (4)", "solution": "פגיעה", "explanation": "" },
-    { "definition": "דרישה (4)", "solution": "תביעה", "explanation": "" },
-    { "definition": "דרישה (4)", "solution": "בקשה", "explanation": "" },
-    { "definition": "דרכון (4)", "solution": "תעודה", "explanation": "" },
-    { "definition": "דרמטי (4)", "solution": "מרגש", "explanation": "" },
-    { "definition": "דרמסלה (4)", "solution": "הודו", "explanation": "" },
-    { "definition": "דרע (3)", "solution": "רע", "explanation": "" },
-    { "definition": "דרס (3)", "solution": "פגע", "explanation": "" },
-    { "definition": "דרך (3)", "solution": "נתיב", "explanation": "" },
-    { "definition": "דרך (3)", "solution": "שיטה", "explanation": "" },
-    { "definition": "דרשה (4)", "solution": "הרצאה", "explanation": "" },
-    { "definition": "דש (2)", "solution": "בגד", "explanation": "" },
-    { "definition": "דשן (3)", "solution": "שמן", "explanation": "" },
-    { "definition": "דת (2)", "solution": "אמונה", "explanation": "" },
-    { "definition": "הב (2)", "solution": "תן", "explanation": "" },
-    { "definition": "הבאה (4)", "solution": "ציטוט", "explanation": "" },
-    { "definition": "הבאי (4)", "solution": "שקר", "explanation": "" },
-    { "definition": "הבטה (4)", "solution": "ראייה", "explanation": "" },
-    { "definition": "הבטחה (4)", "solution": "מילה", "explanation": "" },
-    { "definition": "הביט (4)", "solution": "ראה", "explanation": "" },
-    { "definition": "הבל (3)", "solution": "שטות", "explanation": "" },
-    { "definition": "הבלגה (4)", "solution": "איפוק", "explanation": "" },
-    { "definition": "הבלטה (4)", "solution": "שימת", "explanation": "" },
-    { "definition": "הבנה (4)", "solution": "תפיסה", "explanation": "" },
-    { "definition": "הברקה (4)", "solution": "נצנוץ", "explanation": "" },
-    { "definition": "הברקה (4)", "solution": "רעיון", "explanation": "" },
-    { "definition": "הגדרות (4)", "solution": "מילים", "explanation": "" },
-    { "definition": "הגון (4)", "solution": "ישר", "explanation": "" },
-    { "definition": "הגות (4)", "solution": "מחשבה", "explanation": "" },
-    { "definition": "הד (2)", "solution": "בת קול", "explanation": "" },
-    { "definition": "הדדי (4)", "solution": "משותף", "explanation": "" },
-    { "definition": "הדום (4)", "solution": "שרפרף", "explanation": "" },
-    { "definition": "הדור (4)", "solution": "מהודר", "explanation": "" },
-    { "definition": "הדחה (4)", "solution": "סילוק", "explanation": "" },
-    { "definition": "הדר (3)", "solution": "יופי", "explanation": "" },
-    { "definition": "הדרכה (4)", "solution": "לימוד", "explanation": "" },
-    { "definition": "הדק (3)", "solution": "הדק", "explanation": "" },
-    { "definition": "ההוא (4)", "solution": "אותו", "explanation": "" },
-    { "definition": "הו (2)", "solution": "אוי", "explanation": "" },
-    { "definition": "הובילה (4)", "solution": "נהגה", "explanation": "" },
-    { "definition": "הודיה (4)", "solution": "תודה", "explanation": "" },
-    { "definition": "הודעה (4)", "solution": "מסר", "explanation": "" },
-    { "definition": "הוצאה (4)", "solution": "תשלום", "explanation": "" },
-    { "definition": "הוקעה (4)", "solution": "גינוי", "explanation": "" },
-    { "definition": "הוקרה (4)", "solution": "כבוד", "explanation": "" },
-    { "definition": "הזה (3)", "solution": "הזה", "explanation": "" },
-    { "definition": "הזיה (4)", "solution": "חלום", "explanation": "" },
-    { "definition": "הזנה (4)", "solution": "אוכל", "explanation": "" },
-    { "definition": "הזנחה (4)", "solution": "הפקרה", "explanation": "" },
-    { "definition": "החזקה (4)", "solution": "תחזוקה", "explanation": "" },
-    { "definition": "החלטה (4)", "solution": "פסיקה", "explanation": "" },
-    { "definition": "החמצה (4)", "solution": "פספוס", "explanation": "" },
-    { "definition": "הטבה (4)", "solution": "שיפור", "explanation": "" },
-    { "definition": "הטיה (4)", "solution": "נטייה", "explanation": "" },
-    { "definition": "הטמעה (4)", "solution": "שילוב", "explanation": "" },
-    { "definition": "היא (2)", "solution": "זאת", "explanation": "" },
-    { "definition": "היבט (4)", "solution": "צד", "explanation": "" },
-    { "definition": "היגוי (4)", "solution": "מבטא", "explanation": "" },
-    { "definition": "היגיון (4)", "solution": "שכל", "explanation": "" },
-    { "definition": "הידד (4)", "solution": "כל הכבוד", "explanation": "" },
-    { "definition": "היכרות (4)", "solution": "ידע", "explanation": "" },
-    { "definition": "היכל (4)", "solution": "ארמון", "explanation": "" },
-    { "definition": "הילה (4)", "solution": "אור", "explanation": "" },
-    { "definition": "היעדר (4)", "solution": "חוסר", "explanation": "" },
-    { "definition": "היקף (4)", "solution": "מידה", "explanation": "" },
-    { "definition": "הישג (4)", "solution": "הצלחה", "explanation": "" },
-    { "definition": "היתר (4)", "solution": "אישור", "explanation": "" },
-    { "definition": "הכנה (4)", "solution": "התארגנות", "explanation": "" },
-    { "definition": "הכנעה (4)", "solution": "ניצחון", "explanation": "" },
-    { "definition": "הכפלה (4)", "solution": "ריבוי", "explanation": "" },
-    { "definition": "הכרה (4)", "solution": "תודעה", "explanation": "" },
-    { "definition": "הכרעה (4)", "solution": "פסיקה", "explanation": "" },
-    { "definition": "הלבנה (4)", "solution": "ניקוי", "explanation": "" },
-    { "definition": "הלוואה (4)", "solution": "חוב", "explanation": "" },
-    { "definition": "הלכה (4)", "solution": "חוק", "explanation": "" },
-    { "definition": "הלצה (4)", "solution": "בדיחה", "explanation": "" },
-    { "definition": "הלקאה (4)", "solution": "מכה", "explanation": "" },
-    { "definition": "המד (3)", "solution": "מדד", "explanation": "" },
-    { "definition": "המולה (4)", "solution": "רעש", "explanation": "" },
-    { "definition": "המון (4)", "solution": "קהל", "explanation": "" },
-    { "definition": "המחאה (4)", "solution": "צ'ק", "explanation": "" },
-    { "definition": "המלצה (4)", "solution": "עצה", "explanation": "" },
-    { "definition": "המשך (4)", "solution": "רצף", "explanation": "" },
-    { "definition": "המתנה (4)", "solution": "ציפייה", "explanation": "" },
-    { "definition": "הנאה (4)", "solution": "כיף", "explanation": "" },
-    { "definition": "הנה (2)", "solution": "הנה", "explanation": "" },
-    { "definition": "הנחיה (4)", "solution": "הוראה", "explanation": "" },
-    { "definition": "הנחה (4)", "solution": "הורדה", "explanation": "" },
-    { "definition": "הנצחה (4)", "solution": "זיכרון", "explanation": "" },
-    { "definition": "הסבר (4)", "solution": "פירוש", "explanation": "" },
-    { "definition": "הסדר (4)", "solution": "הסכם", "explanation": "" },
-    { "definition": "הסחה (4)", "solution": "סטייה", "explanation": "" },
-    { "definition": "הסכם (4)", "solution": "חוזה", "explanation": "" },
-    { "definition": "הסכמה (4)", "solution": "אישור", "explanation": "" },
-    { "definition": "הספד (4)", "solution": "קינה", "explanation": "" },
-    { "definition": "הסתרה (4)", "solution": "חשאיות", "explanation": "" },
-    { "definition": "העזה (4)", "solution": "אומץ", "explanation": "" },
-    { "definition": "הערה (4)", "solution": "הארה", "explanation": "" },
-    { "definition": "הערכה (4)", "solution": "כבוד", "explanation": "" },
-    { "definition": "הפגנה (4)", "solution": "מחאה", "explanation": "" },
-    { "definition": "הפסקה (4)", "solution": "פגרה", "explanation": "" },
-    { "definition": "הפרה (4)", "solution": "ביטול", "explanation": "" },
-    { "definition": "הצדקה (4)", "solution": "צידוק", "explanation": "" },
-    { "definition": "הצלה (4)", "solution": "ישועה", "explanation": "" },
-    { "definition": "הצלחה (4)", "solution": "הישג", "explanation": "" },
-    { "definition": "הצעה (4)", "solution": "רעיון", "explanation": "" },
-    { "definition": "הצהרה (4)", "solution": "הכרזה", "explanation": "" },
-    { "definition": "הצפה (4)", "solution": "שטפון", "explanation": "" },
-    { "definition": "הצגה (4)", "solution": "מופע", "explanation": "" },
-    { "definition": "הקלה (4)", "solution": "רווחה", "explanation": "" },
-    { "definition": "הקמה (4)", "solution": "בנייה", "explanation": "" },
-    { "definition": "הקפה (4)", "solution": "סיבוב", "explanation": "" },
-    { "definition": "הקשבה (4)", "solution": "האזנה", "explanation": "" },
-    { "definition": "הראיה (4)", "solution": "הוכחה", "explanation": "" },
-    { "definition": "הרגשה (4)", "solution": "תחושה", "explanation": "" },
-    { "definition": "הרצאה (4)", "solution": "נאום", "explanation": "" },
-    { "definition": "הרס (3)", "solution": "חורבן", "explanation": "" },
-    { "definition": "הרפתקה (4)", "solution": "חוויה", "explanation": "" },
-    { "definition": "הרשמה (4)", "solution": "רישום", "explanation": "" },
-    { "definition": "הרשעה (4)", "solution": "אשמה", "explanation": "" },
-    { "definition": "השאלה (4)", "solution": "שאילה", "explanation": "" },
-    { "definition": "השגחה (4)", "solution": "פיקוח", "explanation": "" },
-    { "definition": "השערה (4)", "solution": "סברה", "explanation": "" },
-    { "definition": "השפעה (4)", "solution": "כוח", "explanation": "" },
-    { "definition": "השקפה (4)", "solution": "דעה", "explanation": "" },
-    { "definition": "השקעה (4)", "solution": "מאמץ", "explanation": "" },
-    { "definition": "השתתפות (4)", "solution": "נוכחות", "explanation": "" },
-    { "definition": "התחלה (4)", "solution": "ראשית", "explanation": "" },
-    { "definition": "התראה (4)", "solution": "אזהרה", "explanation": "" },
-    { "definition": "התרה (4)", "solution": "שחרור", "explanation": "" },
-    { "definition": "זאב (3)", "solution": "חיה", "explanation": "" },
-    { "definition": "זב (2)", "solution": "נזל", "explanation": "" },
-    { "definition": "זבח (3)", "solution": "קורבן", "explanation": "" },
-    { "definition": "זבוב (4)", "solution": "חרק", "explanation": "" },
-    { "definition": "זה (2)", "solution": "הוא", "explanation": "" },
-    { "definition": "זהב (3)", "solution": "מתכת", "explanation": "" },
-    { "definition": "זהה (3)", "solution": "דומה", "explanation": "" },
-    { "definition": "זהירות (4)", "solution": "חשש", "explanation": "" },
-    { "definition": "זו (2)", "solution": "זאת", "explanation": "" },
-    { "definition": "זוג (3)", "solution": "צמד", "explanation": "" },
-    { "definition": "זול (3)", "solution": "זול", "explanation": "" },
-    { "definition": "זולת (4)", "solution": "אחר", "explanation": "" },
-    { "definition": "זונה (4)", "solution": "פרוצה", "explanation": "" },
-    { "definition": "זועף (4)", "solution": "כועס", "explanation": "" },
-    { "definition": "זוקף (4)", "solution": "מעמיד", "explanation": "" },
-    { "definition": "זחילה (4)", "solution": "התקדמות", "explanation": "" },
-    { "definition": "זיכרון (4)", "solution": "נצח", "explanation": "" },
-    { "definition": "זכות (4)", "solution": "היתר", "explanation": "" },
-    { "definition": "זלזול (4)", "solution": "לעג", "explanation": "" },
-    { "definition": "זמן (3)", "solution": "עת", "explanation": "" },
-    { "definition": "זמני (4)", "solution": "ארעי", "explanation": "" },
-    { "definition": "זמר (3)", "solution": "שר", "explanation": "" },
-    { "definition": "זנב (3)", "solution": "סוף", "explanation": "" },
-    { "definition": "זעקה (4)", "solution": "צעקה", "explanation": "" },
-    { "definition": "זקן (3)", "solution": "בא בימים", "explanation": "" },
-    { "definition": "זר (2)", "solution": "נוכרי", "explanation": "" },
-    { "definition": "זרם (3)", "solution": "אפיק", "explanation": "" }
-  ];
+    // --- נתונים ---
+    let allData = [
+        { "definition": "כלי נגינה גדול", "solution": "פסנתר", "explanation": "" },
+        { "definition": "זהירות, זה דוקר!", "solution": "קוץ", "explanation": "" },
+        // *** תדביק כאן את אלפי השורות שלך ***
+    ];
 
-  let currentData = [...allData];
-  let currentStart = 0;
-  const pageSize = 50;
-  let query = "";
-  let searchField = "definition";
+    let currentStart = 0;
+    const pageSize = 50;
+    let query = "";
+    let searchField = "definition";
 
-  const list = document.getElementById('riddleList');
-  const info = document.getElementById('searchInfo');
-  const loader = document.getElementById('loader');
-  const wrapper = document.getElementById('main-content-wrapper');
+    const list = document.getElementById('riddleList');
+    const info = document.getElementById('searchInfo');
 
-  function highlightText(text, q) {
-    if (!q) return text;
-    const regex = new RegExp(`(${q})`, 'gi');
-    return text.replace(regex, `<span class="highlight">$1</span>`);
-  }
+    function highlightText(text, q) {
+        if (!q) return text;
+        const regex = new RegExp(`(${q})`, 'gi');
+        return text.replace(regex, `<span class="highlight">$1</span>`);
+    }
 
-  function render(append = false) {
-    const filtered = allData.filter(item => {
-      const val = item[searchField].toLowerCase();
-      return val.includes(query.toLowerCase());
+    function render(append = false) {
+        const filtered = allData.filter(item => {
+            const val = (item[searchField] || "").toLowerCase();
+            return val.includes(query.toLowerCase());
+        });
+
+        if (!append) {
+            currentStart = 0;
+            list.innerHTML = "";
+        }
+
+        const nextBatch = filtered.slice(currentStart, currentStart + pageSize);
+        
+        if (filtered.length === 0) {
+            list.innerHTML = "<p style='text-align:center'>לא נמצאו תוצאות</p>";
+            info.innerHTML = "";
+            return;
+        }
+
+        const html = nextBatch.map(e => `
+            <div class="card">
+                <div class="card-definition">${highlightText(e.definition, query)}</div>
+                <div class="card-solution">${highlightText(e.solution, query)}</div>
+            </div>
+        `).join('');
+
+        list.insertAdjacentHTML('beforeend', html);
+        info.innerHTML = `נמצאו <b>${filtered.length}</b> תוצאות. מציג <b>${Math.min(currentStart + pageSize, filtered.length)}</b>`;
+        currentStart += pageSize;
+    }
+
+    // פונקציות ניהול
+    function toggleModal(show) {
+        document.getElementById('adminModal').style.display = show ? 'flex' : 'none';
+    }
+
+    function addNewItem() {
+        const def = document.getElementById('newDef').value;
+        const sol = document.getElementById('newSol').value;
+        const expl = document.getElementById('newExpl').value;
+
+        if (!def || !sol) {
+            alert("חובה למלא הגדרה ופתרון!");
+            return;
+        }
+
+        const newItem = { "definition": def, "solution": sol, "explanation": expl };
+        allData.unshift(newItem); // מוסיף להתחלה
+        render(); // מרענן את התצוגה
+        
+        // ניקוי שדות
+        document.getElementById('newDef').value = "";
+        document.getElementById('newSol').value = "";
+        document.getElementById('newExpl').value = "";
+        alert("ההגדרה נוספה בהצלחה למאגר הזמני!");
+    }
+
+    function downloadDatabase() {
+        const fullCode = document.documentElement.outerHTML;
+        const blob = new Blob([fullCode], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'index.html';
+        a.click();
+    }
+
+    // אירועים
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        query = e.target.value;
+        render();
     });
 
-    if (!append) {
-      currentStart = 0;
-      list.innerHTML = "";
-    }
-
-    const nextBatch = filtered.slice(currentStart, currentStart + pageSize);
-    
-    if (filtered.length === 0) {
-      list.innerHTML = `<div class="empty-state"><h3>לא נמצאו תוצאות</h3></div>`;
-      info.style.display = 'none';
-      return;
-    }
-
-    const html = nextBatch.map((e, idx) => `
-      <div class="card" style="animation-delay:${idx * 0.05}s">
-        <div class="card-header">
-          <div class="card-definition">${searchField === 'definition' ? highlightText(e.definition, query) : e.definition}</div>
-          <div class="card-solution">${searchField === 'solution' ? highlightText(e.solution, query) : e.solution}</div>
-        </div>
-      </div>
-    `).join('');
-
-    list.insertAdjacentHTML('beforeend', html);
-    info.style.display = 'block';
-    info.innerHTML = `מוצגים <b>${Math.min(currentStart + pageSize, filtered.length)}</b> מתוך <b>${filtered.length}</b>`;
-    
-    currentStart += pageSize;
-  }
-
-  // אירועי חיפוש וסינון
-  document.getElementById('searchInput').addEventListener('input', (e) => {
-    query = e.target.value;
-    render();
-  });
-
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelector('.filter-btn.active').classList.remove('active');
-      btn.classList.add('active');
-      searchField = btn.dataset.field;
-      render();
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelector('.filter-btn.active').classList.remove('active');
+            btn.classList.add('active');
+            searchField = btn.dataset.field;
+            render();
+        });
     });
-  });
 
-  // טעינה אינסופית
-  window.addEventListener('scroll', () => {
-    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
-      const filteredCount = allData.filter(item => item[searchField].toLowerCase().includes(query.toLowerCase())).length;
-      if (currentStart < filteredCount) {
-        render(true);
-      }
-    }
-  });
+    window.addEventListener('scroll', () => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+            render(true);
+        }
+    });
 
-  // אתחול האתר וסגירת ה-Loader
-  function init() {
-    render();
-    if (loader) loader.style.opacity = '0';
-    setTimeout(() => {
-        if (loader) loader.style.display = 'none';
-        if (wrapper) wrapper.style.display = 'block';
-    }, 500);
-  }
-
-  init();
-
+    window.onload = () => render();
 </script>
+
 </body>
 </html>
