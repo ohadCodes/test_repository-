@@ -1,3 +1,4 @@
-self.addEventListener('fetch', function(event) {
-  // קוד ריק כדי למנוע שגיאות טעינה
+self.addEventListener('fetch', (event) => {
+  // האזהרה נעלמת כי אנחנו משתמשים ב-respondWith
+  event.respondWith(fetch(event.request));
 });
