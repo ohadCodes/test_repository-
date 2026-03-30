@@ -2019,7 +2019,36 @@ function logout() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
+// פונקציה שמכבה את הטעינה וחושפת את האתר
+function finishLoading() {
+    const loader = document.getElementById('loader');
+    const wrapper = document.getElementById('main-content-wrapper');
+    
+    if (loader) loader.style.display = 'none';
+    if (wrapper) wrapper.style.display = 'block';
+}
 
+// מפעילים את הפונקציה מיד אחרי שהדף סיים לטעון את הנתונים הראשוניים
+setTimeout(finishLoading, 500); // ה-500 נותן חצי שנייה של חסד כדי לוודא שהעיצוב נטען חלק
+// פונקציה שמכבה את ה-Loader וחושפת את תוכן האתר
+function finishLoading() {
+    const loader = document.getElementById('loader');
+    const wrapper = document.getElementById('main-content-wrapper');
+    
+    if (loader) {
+        loader.style.opacity = '0'; // אפקט דהייה קטן
+        setTimeout(() => {
+            loader.style.display = 'none';
+            if (wrapper) wrapper.style.display = 'block';
+        }, 300);
+    } else {
+        if (wrapper) wrapper.style.display = 'block';
+    }
+}
+
+// קריאה לפונקציה בסוף הטעינה הראשונית
+// אנחנו מוסיפים השהייה קטנה של 400 מילישניות כדי למנוע "קפיצה" חדה מדי של התוכן
+setTimeout(finishLoading, 400);
 </script>
 </body>
 </html>
