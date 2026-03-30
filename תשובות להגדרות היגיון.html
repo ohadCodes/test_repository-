@@ -709,6 +709,12 @@ document.getElementById('table-container').style.display = 'block'; // מציג 
 </nav>
 
 <main>
+  <div id="loader" style="text-align: center; padding: 50px;">
+    <div class="spinner"></div>
+    <p style="color: #94a3b8; font-family: 'Rubik', sans-serif; margin-top: 15px;">טוען את כל ההגדרות...</p>
+</div>
+
+<div id="main-content-wrapper" style="display: none;">
   <!-- SEARCH VIEW -->
   <div class="view active" id="view-search">
     <div class="filter-bar">
@@ -850,7 +856,7 @@ document.getElementById('table-container').style.display = 'block'; // מציג 
     </div>
   </div>
 
-
+</div>
 </main>
 
 <!-- MODAL -->
