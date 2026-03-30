@@ -637,8 +637,34 @@
       color: #a78bfa;
     }
   </style>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="הגדרות היגיון">
+<link rel="apple-touch-icon" href="icon.png">
+
+<meta name="theme-color" content="#1a1f2e">
+
+<style>
+    body {
+        margin: 0;
+        padding: 10px;
+        box-sizing: border-box;
+        -webkit-text-size-adjust: 100%; /* מונע מהאייפון לשנות גודל טקסט בטעות */
+    }
+    
+    /* אם יש לך טבלה, זה יאפשר גלילה לצדדים בטלפון בלי להרוס את העיצוב */
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        display: block;
+    }
+</style>
 </head>
 <body>
+  <div id="loader" style="text-align: center; padding: 50px;">
+    <div class="spinner"></div>
+    <p style="color: white; font-family: sans-serif; margin-top: 15px;">טוען נתונים...</p>
+</div>
 <div style="text-align: center; padding: 20px;">
     <img src="icon.png" alt="לוגו האתר" style="width: 100px; height: 100px; border-radius: 20px;">
 </div>
