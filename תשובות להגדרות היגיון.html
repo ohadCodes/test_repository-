@@ -643,12 +643,13 @@
     <span class="app-title">✦ תשובות להגדרות היגיון</span>
   </div>
   <div class="header-top">
-      <button id="syncBtn" onclick="handleSyncClick()" class="sync-btn" title="סנכרון Google Drive">
-        <span id="syncIcon">☁️</span>
-      </button>
-      <button id="logoutBtn" onclick="logout()" class="btn-icon danger" style="margin-right:10px;display:none;" title="התנתק מהחשבון">🚪 התנתק</button>
-      <span class="stats-badge" id="statsText">0 הגדרות</span>
-      <span id="loadedInfo" style="font-size:0.8rem;color:var(--accent);display:none;"></span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="syncBtn" onclick="handleSyncClick()" class="sync-btn" title="סנכרון Google Drive">
+          <span id="syncIcon">☁️</span>
+        </button>
+        <button id="logoutBtn" onclick="logout()" class="sync-btn" style="display:none;font-size:0.85rem;padding:6px 10px;" title="התנתק מהחשבון">🚪</button>
+      </div>
+      <span class="stats-badge" id="statsText" style="display:none;">0 הגדרות</span>
   </div>
   <div class="search-wrap" id="searchWrap" style="display:none;">
     <select class="search-field-select" id="searchField" onchange="onSearchFieldChange()">
@@ -668,6 +669,7 @@
   <button class="tab-btn active" onclick="switchTab('search')">🔍 חיפוש</button>
   <button class="tab-btn owner-only" id="tab-add" onclick="switchTab('add')" style="display:none;">➕ הוסף</button>
   <button class="tab-btn owner-only" id="tab-import" onclick="switchTab('import')" style="display:none;">📥 ייבוא</button>
+  <button class="tab-btn owner-only" id="tab-export" onclick="switchTab('export')" style="display:none;">📤 ייצוא</button>
   <button class="tab-btn owner-only" id="tab-dupes" onclick="switchTab('dupes')" style="display:none;">🔎 כפילויות</button>
   <button class="tab-btn owner-only" id="tab-delete" onclick="switchTab('delete')" style="display:none;">🗑️ מחיקה</button>
    <button class="tab-btn owner-only" id="tab-feedback" onclick="switchTab('feedback')" style="display:none; margin-right: 10px;">📣 פידבק</button>
@@ -754,13 +756,14 @@
       </div>
       <button class="btn btn-primary" onclick="importFromPaste()">ייבא טקסט</button>
     </div>
-
-    <div class="form-section" style="margin-top:0;">
+  </div>
+  <!-- EXPORT VIEW -->
+  <div class="view" id="view-export">
+    <div class="form-section">
       <h3>📤 ייצוא כל ההגדרות</h3>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">מוריד קובץ טקסט עם כל ההגדרות השמורות, בפורמט שניתן לייבא חזרה.</p>
       <button class="btn btn-primary" onclick="exportEntries()">📤 הורד קובץ ייצוא</button>
     </div>
-
     <div class="form-section" style="margin-top:0;">
       <h3>🔄 עדכון קובץ HTML</h3>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">מייצר קובץ HTML חדש עם כל ההגדרות הנוכחיות מוטמעות בפנים — הורד והעלה ל-GitHub.</p>
@@ -930,11 +933,17 @@
   // UI
   // ──────────────────────────────────────────────
   function updateStats() {
-    document.getElementById('statsText').textContent = `${entries.length} הגדרות`;
+    const badge = document.getElementById('statsText');
+    if (entries.length > 0) {
+      badge.textContent = `${entries.length} הגדרות`;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 
   function switchTab(tab) {
-    const tabNames = ['search','add','import','dupes','delete','feedback','approvals'];
+    const tabNames = ['search','add','import','export','dupes','delete','feedback','approvals'];
     document.querySelectorAll('.tab-btn').forEach((b, i) => {
       b.classList.toggle('active', tabNames[i] === tab);
     });
@@ -1689,6 +1698,8 @@
     // הצג טאב פידבק למנהל
     const tabFeedback = document.getElementById('tab-feedback');
     if (tabFeedback) tabFeedback.style.display = isOwner ? 'inline-block' : 'none';
+    const tabExport = document.getElementById('tab-export');
+    if (tabExport) tabExport.style.display = isOwner ? 'inline-block' : 'none';
       // הצג/הסתר כפתור התנתקות
       const logoutBtn = document.getElementById('logoutBtn');
       if (logoutBtn) logoutBtn.style.display = isOwner ? 'inline-block' : 'none';
