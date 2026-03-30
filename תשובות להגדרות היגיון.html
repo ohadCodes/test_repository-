@@ -1474,6 +1474,9 @@ document.getElementById('table-container').style.display = 'block'; // מציג 
     }
 
     const container = document.getElementById('dupesResult');
+    // הסתרת הטעינה והצגת הטבלה
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('table-container').style.display = 'block';
 
     if (groups.length === 0) {
       container.innerHTML = `
