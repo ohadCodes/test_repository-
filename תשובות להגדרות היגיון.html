@@ -1599,8 +1599,7 @@
     container.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען קבוצות...</div>';
 
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=getSimilar');
-      const groups = await res.json();
+      const groups = await apiGetJson('?action=getSimilar');
 
       if (!Array.isArray(groups) || groups.length === 0) {
         container.innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="icon">✅</div><h3>לא נמצאו קבוצות דומות</h3></div>';
@@ -1635,8 +1634,7 @@
   async function mergeGroup(idsEncoded) {
     try {
       const ids = JSON.parse(decodeURIComponent(idsEncoded));
-      const res = await fetch(APPS_SCRIPT_URL + '?action=merge&ids=' + encodeURIComponent(JSON.stringify(ids)));
-      const data = await res.json();
+      const data = await apiGetJson('?action=merge&ids=' + encodeURIComponent(JSON.stringify(ids)));
 
       if (data && data.ok) {
         showToast('הקבוצה מוזגה בהצלחה!', 'success');
@@ -1683,12 +1681,26 @@
   const FOLDER_ID = '1poPxM9l92zhppX13f9gdzS14vz9ZSSPk';
   const ENTRIES_FILENAME = 'tashbetz_entries.json';
   const FORMS_URL = 'https://forms.gle/sGWX4LKuUzSFeSjd6';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxAH8pJ5QgNBD-1Ut2L4aDSCM-0YD5Uv8X5eZdvNlXYreoZjtEeVrLjBEJ6BYCOrdqp/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLuPxQxEthsFzbEeZP9PazlwbOcPVoPeRkiDJ3pCYsbcKwWCC8dhSZOoTdVqgyOCX6/exec';
   let gAccessToken = localStorage.getItem('g_access_token') || null;
   let gUserEmail = localStorage.getItem('g_user_email') || null;
   let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
   let isSyncing = false;
   let isOwner = false;
+
+  async function apiGetJson(query, timeoutMs = 12000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const sep = query.includes('?') ? '&' : '?';
+      const url = APPS_SCRIPT_URL + query + `${sep}_t=${Date.now()}`;
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   function updateSyncBtn(state) {
     const btn = document.getElementById('syncBtn');
@@ -1789,19 +1801,13 @@
   async function syncWithDrive() {
     console.log("מבצע סנכרון מול Apps Script...");
     try {
-        const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
-        const data = await res.json();
+        const data = await apiGetJson('?action=getEntries');
         
         if (Array.isArray(data) && data.length > 0) {
             // מעדכנים את המשתנה הגלובלי של ההגדרות
             entries = data;
-            
-            // תיקון השגיאה: קוראים לפונקציה הנכונה שקיימת בקוד שלך
-            if (typeof render === 'function') {
-                render(); 
-            } else if (typeof renderList === 'function') {
-                renderList();
-            }
+            saveDataLocal(entries);
+            renderCardsPaged(currentQuery);
             
             console.log("הנתונים נטענו בהצלחה מהשרת");
         }
@@ -1931,8 +1937,7 @@ function logout() {
     if (!list) return;
     list.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען...</div>';
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=getSuggestions');
-      const data = await res.json();
+      const data = await apiGetJson('?action=getSuggestions');
       if (!Array.isArray(data) || data.length === 0) {
         list.innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="icon">📭</div><h3>אין הצעות ממתינות</h3></div>';
         // אפס את המונה בטאב ההצעות כשאין הצעות
@@ -1959,8 +1964,8 @@ function logout() {
           ${s.explanation ? `<div class="approval-card-exp">💡 ${escapeHtml(s.explanation)}</div>` : ''}
           <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:10px;">${new Date(s.createdAt).toLocaleString('he-IL')}</div>
           <div class="approval-actions">
-            <button class="btn-approve" onclick="approveSuggestion(${i})">✅ אשר והוסף</button>
-            <button class="btn-reject" onclick="rejectSuggestion(${i})">❌ דחה</button>
+            <button class="btn-approve" onclick="approveSuggestion(${i}, this, '${encodeURIComponent(s.suggestionKey || '')}')">✅ אשר והוסף</button>
+            <button class="btn-reject" onclick="rejectSuggestion(${i}, this, '${encodeURIComponent(s.suggestionKey || '')}')">❌ דחה</button>
           </div>
         </div>
       `).join('');
@@ -1969,7 +1974,44 @@ function logout() {
     }
   }
 
-  async function approveSuggestion(index) {
+  function removeSuggestionFromUI(index) {
+    const suggestions = window.currentSuggestions || [];
+    if (!Array.isArray(suggestions) || index < 0 || index >= suggestions.length) return;
+    suggestions.splice(index, 1);
+    window.currentSuggestions = suggestions;
+
+    const tabApprovals = document.getElementById('tab-approvals');
+    if (tabApprovals) {
+      if (suggestions.length > 0) {
+        tabApprovals.innerHTML = `📬 הצעות <span class="count-badge">${suggestions.length}</span>`;
+      } else {
+        tabApprovals.textContent = '📬 הצעות';
+      }
+    }
+
+    const list = document.getElementById('approvalsList');
+    if (list) {
+      if (suggestions.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="icon">📭</div><h3>אין הצעות ממתינות</h3></div>';
+      } else {
+        // רינדור מחדש מהיר מקומי אחרי עדכון האינדקסים
+        list.innerHTML = suggestions.map((s, i) => `
+          <div class="approval-card">
+            <div class="approval-card-def">📝 ${escapeHtml(s.definition)}${s.letters ? ' (' + escapeHtml(s.letters) + ')' : ''}</div>
+            ${s.solution ? `<div class="approval-card-sol">◈ ${escapeHtml(s.solution)}</div>` : ''}
+            ${s.explanation ? `<div class="approval-card-exp">💡 ${escapeHtml(s.explanation)}</div>` : ''}
+            <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:10px;">${new Date(s.createdAt).toLocaleString('he-IL')}</div>
+            <div class="approval-actions">
+              <button class="btn-approve" onclick="approveSuggestion(${i}, this, '${encodeURIComponent(s.suggestionKey || '')}')">✅ אשר והוסף</button>
+              <button class="btn-reject" onclick="rejectSuggestion(${i}, this, '${encodeURIComponent(s.suggestionKey || '')}')">❌ דחה</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  }
+
+  async function approveSuggestion(index, btn, keyEncoded) {
     // שליפת ההצעה הרלוונטית מהמערך הגלובלי שנשמר ב-renderApprovalsList
     const suggestions = window.currentSuggestions || [];
     const suggestion = suggestions[index];
@@ -1979,37 +2021,38 @@ function logout() {
     }
 
     const definition = suggestion.definition || '';
-    const solution = suggestion.solution || '';
-    const explanation = suggestion.explanation || '';
-
-    // בניית ה-URL עם הפרמטרים הנכונים עבור ה-Apps Script
-    const url = `${APPS_SCRIPT_URL}?action=approve&def=${encodeURIComponent(definition)}&sol=${encodeURIComponent(solution)}&exp=${encodeURIComponent(explanation)}`;
 
     try {
-        // שימוש ב-mode: 'no-cors' כדי למנוע את חסימת הדפדפן בשליחה
-        await fetch(url, { 
-            method: 'GET',
-            mode: 'no-cors',
-            cache: 'no-cache'
-        });
+        if (btn) btn.disabled = true;
+        // הסרה מיידית מהממשק כדי למנוע תחושת איטיות
+        removeSuggestionFromUI(index);
 
-        // מכיוון ש-no-cors לא מחזיר תשובה שניתן לקרוא, אנחנו מניחים שהשליחה הצליחה
+        // אישור מהיר לפי אינדקס (JSON רגיל) כדי למנוע המתנה איטית של no-cors
+        const key = decodeURIComponent(keyEncoded || '');
+        const data = await apiGetJson('?action=approveSuggestion&index=' + index + '&key=' + encodeURIComponent(key));
+        if (!data || !data.ok) throw new Error('approve failed');
+
         showToast('ההגדרה אושרה ונוספה למאגר!', 'success');
-        
-        // רענון הרשימה או סגירת המודאל אם צריך
-        if (typeof renderApprovalsList === 'function') renderApprovalsList();
+        // רענון מאגר ההגדרות ברקע
+        setTimeout(() => syncWithDrive(), 400);
         
     } catch (error) {
         console.error('Error approving suggestion:', error);
-        showToast('שגיאה בביצוע האישור', 'error');
+        showToast(`שגיאה בביצוע האישור: ${definition}`, 'error');
+        // אם היתה שגיאה, נרענן מהרשת כדי לשחזר מצב אמיתי
+        renderApprovalsList();
     }
 }
 
-  async function rejectSuggestion(index) {
+  async function rejectSuggestion(index, btn, keyEncoded) {
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=rejectSuggestion&index=' + index);
-      const data = await res.json();
-      if (data.ok) { showToast('נדחתה', 'success'); renderApprovalsList(); }
+      if (btn) btn.disabled = true;
+      const key = decodeURIComponent(keyEncoded || '');
+      const data = await apiGetJson('?action=rejectSuggestion&index=' + index + '&key=' + encodeURIComponent(key));
+      if (data.ok) { 
+        removeSuggestionFromUI(index);
+        showToast('נדחתה', 'success');
+      }
       else showToast('שגיאה', 'error');
     } catch(e) { showToast('שגיאה', 'error'); }
   }
@@ -2129,8 +2172,7 @@ function logout() {
     const type = feedbackType;
     closeFeedbackModal();
     showToast('שולח פידבק...', '');
-    fetch(APPS_SCRIPT_URL + '?action=submitFeedback&type=' + encodeURIComponent(type) + '&text=' + encodeURIComponent(text))
-      .then(res => res.json())
+    apiGetJson('?action=submitFeedback&type=' + encodeURIComponent(type) + '&text=' + encodeURIComponent(text))
       .then(data => {
         if (data.ok) showToast('✅ הפידבק התקבל, תודה!', 'success');
         else showToast('שגיאה בשליחת הפידבק', 'error');
@@ -2146,13 +2188,14 @@ function logout() {
   async function loadPublicEntries() {
     // אם יש כבר נתונים בזיכרון (מ-localStorage) — הצג מיד, רענן ברקע בשקט
     if (entries.length > 0) {
+      renderCardsPaged(currentQuery);
       // ריענון שקט ברקע — לא מציג toast, לא מפריע למשתמש
-      fetch(APPS_SCRIPT_URL + '?action=getEntries')
-        .then(r => r.json())
+      apiGetJson('?action=getEntries')
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
             entries = data;
             saveDataLocal(entries);
+            renderCardsPaged(currentQuery);
           }
         })
         .catch(() => {});
@@ -2160,9 +2203,7 @@ function logout() {
     }
     // טעינה ראשונה — אין נתונים בכלל
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await apiGetJson('?action=getEntries');
       if (Array.isArray(data) && data.length > 0) {
         entries = data;
         saveDataLocal(entries);
@@ -2176,44 +2217,52 @@ function logout() {
 
   if (!isOwner) loadPublicEntries();
 
+  // רינדור ראשוני מיידי גם לפני טעינת רשת
+  updateStats();
+  renderCardsPaged(currentQuery);
+
   // ──────────────────────────────────────────────
   // FEEDBACK ADMIN
   // ──────────────────────────────────────────────
   async function renderFeedbackList() {
-    const bugsEl = document.getElementById('bugsList');
-    const improvEl = document.getElementById('improvList');
-    const suggestTabLink = document.querySelector('button[onclick*="suggestions"]');
+    const bugsEl = document.getElementById('feedbackListBugs');
+    const improvEl = document.getElementById('feedbackListImprovements');
+    const suggestTabLink = document.getElementById('tab-approvals');
     
     const empty = '<div style="color:var(--text-dim);font-size:0.85rem;text-align:center;padding:16px;">אין פריטים</div>';
     
     if (!bugsEl || !improvEl) return;
 
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=getFeedback');
-      const data = await res.json();
+      const data = await apiGetJson('?action=getFeedback');
       
-      const bugs = data.filter(i => i.type === 'bug');
-      const improvements = data.filter(i => i.type === 'improvement');
+      const bugs = [];
+      const improvements = [];
+      data.forEach((item, idx) => {
+        const enriched = { ...item, _idx: idx };
+        if (item.type === 'improvement') improvements.push(enriched);
+        else bugs.push(enriched);
+      });
 
       // עדכון ה-Badge בטאב הצעות
       if (suggestTabLink) {
-        suggestTabLink.innerHTML = `הצעות <span class="count-badge">${improvements.length}</span>`;
+        suggestTabLink.innerHTML = `📬 הצעות <span class="count-badge">${improvements.length}</span>`;
       }
 
-      const renderCard = (item, idx) => `
+      const renderCard = (item) => `
         <div class="card" style="margin-bottom:8px; padding:12px;">
           <div style="font-size:0.85rem;margin-bottom:8px;">${item.text}</div>
           <div style="display:flex; gap:8px; justify-content: flex-end;">
             ${item.type === 'improvement' ? 
-              `<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="handleApproveFromUI('${encodeURIComponent(item.text)}')">אישור</button>` : ''
+              `<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="approveFeedbackItem(${item._idx})">אישור</button>` : ''
             }
-            <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(244,63,94,0.1); color:var(--danger);" onclick="deleteFeedbackItem(${idx})">מחיקה</button>
+            <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(244,63,94,0.1); color:var(--danger);" onclick="deleteFeedbackItem(${item._idx})">מחיקה</button>
           </div>
         </div>
       `;
 
-      bugsEl.innerHTML = bugs.length ? bugs.map((item, i) => renderCard(item, i)).join('') : empty;
-      improvEl.innerHTML = improvements.length ? improvements.map((item, i) => renderCard(item, i)).join('') : empty;
+      bugsEl.innerHTML = bugs.length ? bugs.map(item => renderCard(item)).join('') : empty;
+      improvEl.innerHTML = improvements.length ? improvements.map(item => renderCard(item)).join('') : empty;
       
     } catch(e) {
       const err = '<div style="color:var(--danger);font-size:0.85rem;text-align:center;padding:16px;">שגיאה בטעינה</div>';
@@ -2225,8 +2274,7 @@ function logout() {
   async function deleteFeedbackItem(index) {
     if (!confirm('למחוק את הפריט?')) return;
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=deleteFeedback&index=' + index);
-      const data = await res.json();
+      const data = await apiGetJson('?action=deleteFeedback&index=' + index);
       if (data.ok) { 
         showToast('נמחק בהצלחה', 'success'); 
         renderFeedbackList(); 
@@ -2236,25 +2284,16 @@ function logout() {
     }
   }
 
-  // פונקציית עזר לפירוק הטקסט מהפידבק ואישורו
-  async function handleApproveFromUI(encodedText) {
-    const fullText = decodeURIComponent(encodedText);
-    
-    // שליחת בקשת האישור - אנחנו שולחים את fullText כהגדרה 
-    // כדי שפונקציית ה-removeFromFeedback תוכל למצוא התאמה ב-includes
-    const url = `${APPS_SCRIPT_URL}?action=approve&def=${encodeURIComponent(fullText)}&sol=&exp=`;
-    
+  async function approveFeedbackItem(index) {
     try {
-      showToast('מבצע אישור והסרה...', 'info');
-      await fetch(url, { mode: 'no-cors' });
-      
-      // מחכים שנייה כדי לתת לשרת זמן לעדכן
-      setTimeout(() => {
-        renderFeedbackList(); // רענון הרשימה באתר
-        syncWithDrive();      // רענון המאגר הכללי
-        showToast('ההגדרה אושרה והוסרה מההמתנה', 'success');
-      }, 1500);
-      
+      const data = await apiGetJson('?action=approveFeedback&index=' + index);
+      if (data && data.ok) {
+        renderFeedbackList();
+        setTimeout(() => syncWithDrive(), 300);
+        showToast('ההצעה אושרה ונוספה למאגר', 'success');
+      } else {
+        showToast('שגיאה בתהליך האישור', 'error');
+      }
     } catch(e) {
       console.error(e);
       showToast('שגיאה בתהליך האישור', 'error');
