@@ -1612,7 +1612,7 @@
   const FOLDER_ID = '1poPxM9l92zhppX13f9gdzS14vz9ZSSPk';
   const ENTRIES_FILENAME = 'tashbetz_entries.json';
   const FORMS_URL = 'https://forms.gle/sGWX4LKuUzSFeSjd6';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfVqqj9_btdMLFByoO_0X-BypXM1CmolTWb4gZywLF1gkGngrltNlRCXOHh4FjC7Pv/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjVWLGXKM8BhDfZdCqzRUjwtmgUDViIkStP1G0DdrKITyI-nSb3mFi732hpKyYozdJ/exec';
   let gAccessToken = localStorage.getItem('g_access_token') || null;
   let gUserEmail = localStorage.getItem('g_user_email') || null;
   let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
@@ -1864,8 +1864,23 @@ function logout() {
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) {
         list.innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="icon">📭</div><h3>אין הצעות ממתינות</h3></div>';
+        // אפס את המונה בטאב ההצעות כשאין הצעות
+        const tabApprovals = document.getElementById('tab-approvals');
+        if (tabApprovals) {
+          tabApprovals.textContent = '📬 הצעות';
+        }
         return;
       }
+
+      // שמירת ההצעות האחרונות בגלובל לשימוש בעת אישור/דחייה
+      window.currentSuggestions = data;
+
+      // עדכון מונה ההצעות בטאב
+      const tabApprovals = document.getElementById('tab-approvals');
+      if (tabApprovals) {
+        tabApprovals.innerHTML = `📬 הצעות <span class="count-badge">${data.length}</span>`;
+      }
+
       list.innerHTML = data.map((s, i) => `
         <div class="approval-card">
           <div class="approval-card-def">📝 ${escapeHtml(s.definition)}${s.letters ? ' (' + escapeHtml(s.letters) + ')' : ''}</div>
@@ -1883,7 +1898,19 @@ function logout() {
     }
   }
 
-  async function approveSuggestion(definition, solution, explanation) {
+  async function approveSuggestion(index) {
+    // שליפת ההצעה הרלוונטית מהמערך הגלובלי שנשמר ב-renderApprovalsList
+    const suggestions = window.currentSuggestions || [];
+    const suggestion = suggestions[index];
+    if (!suggestion) {
+      showToast('שגיאה באישור ההצעה', 'error');
+      return;
+    }
+
+    const definition = suggestion.definition || '';
+    const solution = suggestion.solution || '';
+    const explanation = suggestion.explanation || '';
+
     // בניית ה-URL עם הפרמטרים הנכונים עבור ה-Apps Script
     const url = `${APPS_SCRIPT_URL}?action=approve&def=${encodeURIComponent(definition)}&sol=${encodeURIComponent(solution)}&exp=${encodeURIComponent(explanation)}`;
 
