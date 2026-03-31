@@ -1718,18 +1718,25 @@
   async function syncWithDrive() {
     console.log("מבצע סנכרון מול Apps Script...");
     try {
-        // במקום לפנות ל-Google API ישירות, פונים לסקריפט שלך
         const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
         const data = await res.json();
         
         if (Array.isArray(data) && data.length > 0) {
+            // מעדכנים את המשתנה הגלובלי של ההגדרות
             entries = data;
-            renderEntries(); // רענון התצוגה באתר
+            
+            // תיקון השגיאה: קוראים לפונקציה הנכונה שקיימת בקוד שלך
+            if (typeof render === 'function') {
+                render(); 
+            } else if (typeof renderList === 'function') {
+                renderList();
+            }
+            
             console.log("הנתונים נטענו בהצלחה מהשרת");
         }
     } catch (e) {
         console.error("שגיאה בסנכרון:", e);
-        showToast('טעינת נתונים מהשרת נכשלה, משתמש בנתונים מקומיים', 'error');
+        showToast('טעינת נתונים מהשרת נכשלה', 'error');
     }
 }
   function mergeEntries(local, remote) {
