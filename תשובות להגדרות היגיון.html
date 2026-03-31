@@ -2093,6 +2093,20 @@ function logout() {
   // FEEDBACK ADMIN
   // ──────────────────────────────────────────────
   async function renderFeedbackList() {
+    onst bugsEl = document.getElementById('bugsList');
+    const improvEl = document.getElementById('improvList');
+    const suggestTabLink = document.querySelector('button[onclick*="suggestions"]'); // מוצא את כפתור הטאב
+    try {
+      const res = await fetch(APPS_SCRIPT_URL + '?action=getFeedback');
+      const data = await res.json();
+      
+      const bugs = data.filter(i => i.type === 'bug');
+      const improvements = data.filter(i => i.type === 'improvement');
+      
+      // עדכון מספר ההצעות בתוך כפתור הטאב
+      if (suggestTabLink) {
+        suggestTabLink.innerHTML = `הצעות <span class="count-badge">${improvements.length}</span>`;
+      }
     const bugsEl = document.getElementById('feedbackListBugs');
     const improvEl = document.getElementById('feedbackListImprovements');
     if (!bugsEl || !improvEl) return;
