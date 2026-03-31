@@ -2143,38 +2143,38 @@ function logout() {
       improvEl.innerHTML = err;
     }
   }
-      const bugs = data.filter((f, i) => ({ ...f, _i: i })).map((f, i) => ({ ...f, _i: i })).filter(f => f.type === 'bug');
-      const improvements = data.filter((f, i) => ({ ...f, _i: i })).map((f, i) => ({ ...f, _i: i })).filter(f => f.type !== 'bug');
-      // re-index with original indices
-      const bugsWithIdx = data.map((f,i) => ({...f,_i:i})).filter(f => f.type === 'bug');
-      const imprWithIdx = data.map((f,i) => ({...f,_i:i})).filter(f => f.type !== 'bug');
-      const renderCard = (f) => `
-        <div class="feedback-card" id="fc-${f._i}">
-          <button class="feedback-card-del" onclick="deleteFeedbackItem(${f._i})" title="מחק">🗑️</button>
-          <div class="feedback-card-text">${escapeHtml(f.text)}</div>
-          <div class="feedback-card-date">${new Date(f.createdAt).toLocaleString('he-IL')}</div>
-        </div>`;
-      bugsEl.innerHTML = bugsWithIdx.length ? bugsWithIdx.map(renderCard).join('') : empty;
-      improvEl.innerHTML = imprWithIdx.length ? imprWithIdx.map(renderCard).join('') : empty;
-    } catch(e) {
-      const err = '<div style="color:var(--danger);font-size:0.85rem;text-align:center;padding:16px;">שגיאה בטעינה</div>';
-      bugsEl.innerHTML = err;
-      improvEl.innerHTML = err;
-    }
-  }
 
   async function deleteFeedbackItem(index) {
+    if (!confirm('למחוק את הפריט?')) return;
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?action=deleteFeedback&index=' + index);
       const data = await res.json();
-      if (data.ok) { showToast('נמחק', 'success'); renderFeedbackList(); }
-    } catch(e) { showToast('שגיאה במחיקה', 'error'); }
+      if (data.ok) { 
+        showToast('נמחק בהצלחה', 'success'); 
+        renderFeedbackList(); 
+      }
+    } catch(e) { 
+      showToast('שגיאה במחיקה', 'error'); 
+    }
+  }
+
+  // פונקציית עזר לפירוק הטקסט מהפידבק ואישורו
+  async function handleApproveFromUI(encodedText) {
+    const text = decodeURIComponent(encodedText);
+    // ניסיון לחלץ הגדרה ופתרון מהטקסט (בהנחה שהם מופרדים בנקודותיים או פורמט דומה)
+    // אם הפורמט קבוע, אפשר לשפר את החילוץ כאן. כרגע נשלח את הטקסט כהגדרה.
+    const parts = text.split('|'); // דוגמה לפורמט: הגדרה | פתרון | הסבר
+    const def = parts[0] || text;
+    const sol = parts[1] || '';
+    const exp = parts[2] || '';
+    
+    await approveSuggestion(def, sol, exp);
+    renderFeedbackList();
   }
 
   function exportUpdatedHTML() {
     const htmlContent = document.documentElement.outerHTML;
     const entriesJson = JSON.stringify(entries, null, 0);
-    // Replace BUNDLED_ENTRIES in the HTML with current entries
     const updated = htmlContent.replace(
       /const BUNDLED_ENTRIES = \[.*?\];/s,
       'const BUNDLED_ENTRIES = ' + entriesJson + ';'
@@ -2182,16 +2182,9 @@ function logout() {
     const blob = new Blob([updated], { type: 'text/html;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'תשובות להגדרות היגיון.html';
+    a.download = 'updated_riddles.html';
     a.click();
-    showToast('✅ HTML מעודכן הורד', 'success');
   }
-
-  // Register service worker for PWA
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  }
-
 </script>
 </body>
 </html>
