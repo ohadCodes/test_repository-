@@ -734,7 +734,7 @@
   <button class="tab-btn owner-only" id="tab-import" onclick="switchTab('import')" style="display:none;">📥 ייבוא</button>
   <button class="tab-btn owner-only" id="tab-export" onclick="switchTab('export')" style="display:none;">📤 ייצוא</button>
   <button class="tab-btn owner-only" id="tab-dupes" onclick="switchTab('dupes')" style="display:none;">🔎 הגדרות כפולות</button>
-  <button class="tab-btn owner-only" onclick="switchTab('similar')">🔍 הגדרות דומות</button>
+  <button class="tab-btn owner-only" id="tab-similar" onclick="switchTab('similar')" style="display:none;">🔍 הגדרות דומות</button>
   <button class="tab-btn owner-only" id="tab-delete" onclick="switchTab('delete')" style="display:none;">🗑️ מחיקת הגדרות</button>
   <button class="tab-btn owner-only" id="tab-approvals" onclick="switchTab('approvals')" style="display:none;">📬 הצעות להגדרות</button>
    <button class="tab-btn owner-only" id="tab-feedback" onclick="switchTab('feedback')" style="display:none;">📣 פידבקים ומשובים לאתר</button>
@@ -841,6 +841,14 @@
       <h3>🔎 בדיקת כפילויות</h3>
       <button class="btn btn-primary" onclick="checkDuplicates()" style="margin-bottom:16px;">בדוק עכשיו</button>
       <div id="dupesResult"></div>
+    </div>
+  </div>
+
+  <!-- DELETE VIEW -->
+  <div class="view" id="view-similar">
+    <div class="form-section">
+      <h3>🔍 הגדרות דומות</h3>
+      <div id="similarList"></div>
     </div>
   </div>
 
@@ -1045,7 +1053,7 @@
   }
 
   function switchTab(tab) {
-    const tabNames = ['search','add','import','export','dupes','delete','approvals','feedback'];
+    const tabNames = ['search','add','import','export','dupes','similar','delete','approvals','feedback'];
     document.querySelectorAll('.tab-btn').forEach((b, i) => {
       b.classList.toggle('active', tabNames[i] === tab);
     });
@@ -1056,6 +1064,7 @@
     if (tab === 'delete') renderDeleteList();
     if (tab === 'feedback') renderFeedbackList();
     if (tab === 'approvals') renderApprovalsList();
+    if (tab === 'similar') loadSimilar();
   }
 
   // ──────────────────────────────────────────────
@@ -1580,6 +1589,67 @@
     container.innerHTML = html;
   }
 
+  // ──────────────────────────────────────────────
+  // SIMILAR DEFINITIONS (admin)
+  // ──────────────────────────────────────────────
+  async function loadSimilar() {
+    const container = document.getElementById('similarList');
+    if (!container) return;
+
+    container.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען קבוצות...</div>';
+
+    try {
+      const res = await fetch(APPS_SCRIPT_URL + '?action=getSimilar');
+      const groups = await res.json();
+
+      if (!Array.isArray(groups) || groups.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="icon">✅</div><h3>לא נמצאו קבוצות דומות</h3></div>';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      groups.forEach((group, idx) => {
+        const div = document.createElement('div');
+        div.className = 'card';
+
+        let html = `<h4 style="margin-bottom:10px;">קבוצה ${idx + 1} - ${group.length} הגדרות</h4><ol style="padding-right:18px;">`;
+        group.forEach(g => {
+          html += `<li data-id="${escapeHtml(g.id || '')}" style="margin-bottom:6px;">${escapeHtml(g.definition || '')} ${escapeHtml(g.letters || '')}</li>`;
+        });
+        html += '</ol>';
+
+        const ids = group.map(g => g.id);
+        const idsEncoded = encodeURIComponent(JSON.stringify(ids));
+        html += `<button class="btn btn-primary" onclick="mergeGroup('${idsEncoded}')">מזג קבוצה</button>`;
+
+        div.innerHTML = html;
+        container.appendChild(div);
+      });
+    } catch (e) {
+      console.error('loadSimilar failed:', e);
+      container.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינת קבוצות דומות</div>';
+    }
+  }
+
+  async function mergeGroup(idsEncoded) {
+    try {
+      const ids = JSON.parse(decodeURIComponent(idsEncoded));
+      const res = await fetch(APPS_SCRIPT_URL + '?action=merge&ids=' + encodeURIComponent(JSON.stringify(ids)));
+      const data = await res.json();
+
+      if (data && data.ok) {
+        showToast('הקבוצה מוזגה בהצלחה!', 'success');
+        loadSimilar();
+      } else {
+        showToast('שגיאה במיזוג', 'error');
+      }
+    } catch (e) {
+      console.error('mergeGroup failed:', e);
+      showToast('שגיאה במיזוג', 'error');
+    }
+  }
+
   function deleteDupe(id) {
     entries = entries.filter(e => e.id !== id);
     saveData(entries);
@@ -1613,7 +1683,7 @@
   const FOLDER_ID = '1poPxM9l92zhppX13f9gdzS14vz9ZSSPk';
   const ENTRIES_FILENAME = 'tashbetz_entries.json';
   const FORMS_URL = 'https://forms.gle/sGWX4LKuUzSFeSjd6';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyjVWLGXKM8BhDfZdCqzRUjwtmgUDViIkStP1G0DdrKITyI-nSb3mFi732hpKyYozdJ/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw8JjoBAGYlR7LlrAr7L-fOBfAZNsojLvj2Mt8Jed7UJ4vNGYldr9Ua36D3rsbx7JBD/exec';
   let gAccessToken = localStorage.getItem('g_access_token') || null;
   let gUserEmail = localStorage.getItem('g_user_email') || null;
   let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
