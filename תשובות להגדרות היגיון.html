@@ -1294,13 +1294,13 @@
       if (part.startsWith('ההגדרה:') || part.startsWith('הגדרה:')) {
         let def = part.replace(/^(ה)?הגדרה:\s*/, '');
         // Extract letters (number in parens)
-        const lettersMatch = def.match(/\((\d+)\)/);
+        const lettersMatch = def.match(/\((\d[\d,\s-]*)\)/);
         if (lettersMatch) letters = lettersMatch[1];
         // Extract type [...]
         const typeMatch = def.match(/\[([^\]]+)\]/);
         if (typeMatch) type = typeMatch[1];
         // Clean definition
-        definition = def.replace(/\s*\(\d+\)\s*/g, '').replace(/\s*\[[^\]]+\]\s*/g, '').trim();
+        definition = def.replace(/\s*\(\d[\d,\s-]*\)\s*/g, '').replace(/\s*\[[^\]]+\]\s*/g, '').trim();
       } else if (part.startsWith('הפתרון:') || part.startsWith('פתרון:')) {
         solution = part.replace(/^(ה)?פתרון:\s*/, '').trim();
       } else if (part.startsWith('הסבר:') || part.startsWith('סבר:')) {
@@ -1310,7 +1310,7 @@
 
     // Fallback: if no pipes, try to parse as "הגדרה: X (N) [Y] הפתרון: Z הסבר: W"
     if (!solution && parts.length === 1) {
-      const m = line.match(/^(?:ה?הגדרה:\s*)?(.+?)\s*(?:\((\d+)\))?\s*(?:\[([^\]]+)\])?\s*\|\s*(?:ה?פתרון:\s*)(.+?)(?:\s*\|\s*(?:ה?סבר:\s*)(.+))?$/);
+      const m = line.match(/^(?:ה?הגדרה:\s*)?(.+?)\s*(?:\((\d[\d,\s-]*)\))?\s*(?:\[([^\]]+)\])?\s*\|\s*(?:ה?פתרון:\s*)(.+?)(?:\s*\|\s*(?:ה?סבר:\s*)(.+))?$/);
       if (m) {
         definition = m[1].trim();
         letters = m[2] || '';
@@ -1351,7 +1351,11 @@
   }
 
   function normalizeDefinition(str) {
-    return str.trim().replace(/\s+/g, ' ').toLowerCase();
+    return String(str || '')
+      .trim()
+      .replace(/\s*\(\d[\d,\s-]*\)\s*$/, '')
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
   }
 
   function processImportText(text) {
@@ -1380,6 +1384,16 @@
         // אם ההגדרה הקיימת ללא הסבר והחדשה יש לה — עדכן הסבר
         if (entry.explanation && !existing.explanation) {
           updatedEntry.explanation = entry.explanation;
+          changed = true;
+        }
+        // אם חסר מספר אותיות והחדש מכיל — עדכן
+        if (entry.letters && !existing.letters) {
+          updatedEntry.letters = entry.letters;
+          changed = true;
+        }
+        // אם חסר סוג והחדש מכיל — עדכן
+        if (entry.type && !existing.type) {
+          updatedEntry.type = entry.type;
           changed = true;
         }
 
@@ -1681,7 +1695,7 @@
   const FOLDER_ID = '1poPxM9l92zhppX13f9gdzS14vz9ZSSPk';
   const ENTRIES_FILENAME = 'tashbetz_entries.json';
   const FORMS_URL = 'https://forms.gle/sGWX4LKuUzSFeSjd6';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLuPxQxEthsFzbEeZP9PazlwbOcPVoPeRkiDJ3pCYsbcKwWCC8dhSZOoTdVqgyOCX6/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec';
   let gAccessToken = localStorage.getItem('g_access_token') || null;
   let gUserEmail = localStorage.getItem('g_user_email') || null;
   let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
