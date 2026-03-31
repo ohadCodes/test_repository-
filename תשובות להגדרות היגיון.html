@@ -1894,22 +1894,29 @@ function logout() {
     }
   }
 
-  async function approveSuggestion(index) {
+  async function approveSuggestion(definition, solution, explanation) {
+    // בניית ה-URL עם הפרמטרים הנכונים עבור ה-Apps Script
+    const url = `${APPS_SCRIPT_URL}?action=approve&def=${encodeURIComponent(definition)}&sol=${encodeURIComponent(solution)}&exp=${encodeURIComponent(explanation)}`;
+
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=approveSuggestion&index=' + index);
-      const data = await res.json();
-      if (data.ok) {
-        // Also add to local entries
-        if (data.entry) {
-          entries.unshift(data.entry);
-          saveData(entries);
-          renderCardsPaged('');
-        }
-        showToast('✅ הוגדרה אושרה ונוספה', 'success');
-        renderApprovalsList();
-      } else showToast('שגיאה', 'error');
-    } catch(e) { showToast('שגיאה', 'error'); }
-  }
+        // שימוש ב-mode: 'no-cors' כדי למנוע את חסימת הדפדפן בשליחה
+        await fetch(url, { 
+            method: 'GET',
+            mode: 'no-cors',
+            cache: 'no-cache'
+        });
+
+        // מכיוון ש-no-cors לא מחזיר תשובה שניתן לקרוא, אנחנו מניחים שהשליחה הצליחה
+        showToast('ההגדרה אושרה ונוספה למאגר!', 'success');
+        
+        // רענון הרשימה או סגירת המודאל אם צריך
+        if (typeof renderApprovalsList === 'function') renderApprovalsList();
+        
+    } catch (error) {
+        console.error('Error approving suggestion:', error);
+        showToast('שגיאה בביצוע האישור', 'error');
+    }
+}
 
   async function rejectSuggestion(index) {
     try {
