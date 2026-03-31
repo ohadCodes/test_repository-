@@ -32,15 +32,15 @@ self.addEventListener('activate', event => {
   );
 });
 
-// שליפת קבצים מהמטמון
 self.addEventListener('fetch', event => {
+  // החרגה של כתובות Google Script כדי למנוע שגיאות CORS ו-Fetch
+  if (event.request.url.includes('script.google.com') || event.request.url.includes('googleusercontent.com')) {
+    return; // מאפשר לבקשה לעבור ישירות לרשת ללא התערבות ה-Service Worker
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    }).catch(() => fetch(event.request))
   );
 });
