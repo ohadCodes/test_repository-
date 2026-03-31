@@ -1716,49 +1716,22 @@
   }
 
   async function syncWithDrive() {
-    if (isSyncing || !gAccessToken || !isOwner) return;
-    isSyncing = true;
-    updateSyncBtn('syncing');
+    console.log("מבצע סנכרון מול Apps Script...");
     try {
-      if (!gEntriesFileId) {
-        gEntriesFileId = await findEntriesFile();
-        if (gEntriesFileId) localStorage.setItem('g_entries_file_id', gEntriesFileId);
-      }
-      if (!gEntriesFileId) {
-        const meta = await driveRequest('https://www.googleapis.com/drive/v3/files', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: ENTRIES_FILENAME, parents: [FOLDER_ID], mimeType: 'application/json' })
-        });
-        if (!meta) throw new Error('failed to create');
-        const { id } = await meta.json();
-        gEntriesFileId = id;
-        localStorage.setItem('g_entries_file_id', id);
-        await writeEntriesToDrive(entries);
-        showToast(`✅ מאגר הועלה (${entries.length} הגדרות)`, 'success');
-      } else {
-        const driveData = await readEntriesFromDrive();
-        if (driveData && driveData.length > 0) {
-          const merged = mergeEntries(entries, driveData);
-          entries = merged;
-          saveDataLocal(entries);
-          await writeEntriesToDrive(entries);
-          renderCardsPaged(currentQuery);
-        } else {
-          await writeEntriesToDrive(entries);
+        // במקום לפנות ל-Google API ישירות, פונים לסקריפט שלך
+        const res = await fetch(APPS_SCRIPT_URL + '?action=getEntries');
+        const data = await res.json();
+        
+        if (Array.isArray(data) && data.length > 0) {
+            entries = data;
+            renderEntries(); // רענון התצוגה באתר
+            console.log("הנתונים נטענו בהצלחה מהשרת");
         }
-        showToast('✅ סונכרן — ' + entries.length + ' הגדרות', 'success');
-      }
-      updateSyncBtn('connected');
-      renderCardsPaged(currentQuery);
-    } catch(e) {
-      console.error(e);
-      updateSyncBtn('error');
-      showToast('שגיאה בסנכרון', 'error');
+    } catch (e) {
+        console.error("שגיאה בסנכרון:", e);
+        showToast('טעינת נתונים מהשרת נכשלה, משתמש בנתונים מקומיים', 'error');
     }
-    isSyncing = false;
-  }
-
+}
   function mergeEntries(local, remote) {
     const seen = {};
     const result = [];
