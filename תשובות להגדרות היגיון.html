@@ -2102,35 +2102,47 @@ function logout() {
   // FEEDBACK ADMIN
   // ──────────────────────────────────────────────
   async function renderFeedbackList() {
-    onst bugsEl = document.getElementById('bugsList');
+    const bugsEl = document.getElementById('bugsList');
     const improvEl = document.getElementById('improvList');
-    const suggestTabLink = document.querySelector('button[onclick*="suggestions"]'); // מוצא את כפתור הטאב
+    const suggestTabLink = document.querySelector('button[onclick*="suggestions"]');
+    
+    const empty = '<div style="color:var(--text-dim);font-size:0.85rem;text-align:center;padding:16px;">אין פריטים</div>';
+    
+    if (!bugsEl || !improvEl) return;
+
     try {
       const res = await fetch(APPS_SCRIPT_URL + '?action=getFeedback');
       const data = await res.json();
       
       const bugs = data.filter(i => i.type === 'bug');
       const improvements = data.filter(i => i.type === 'improvement');
-      
-      // עדכון מספר ההצעות בתוך כפתור הטאב
+
+      // עדכון ה-Badge בטאב הצעות
       if (suggestTabLink) {
         suggestTabLink.innerHTML = `הצעות <span class="count-badge">${improvements.length}</span>`;
       }
-    const bugsEl = document.getElementById('feedbackListBugs');
-    const improvEl = document.getElementById('feedbackListImprovements');
-    if (!bugsEl || !improvEl) return;
-    const loading = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:16px;">⏳ טוען...</div>';
-    bugsEl.innerHTML = loading;
-    improvEl.innerHTML = loading;
-    try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=getFeedback');
-      const data = await res.json();
-      const empty = '<div style="color:var(--text-dim);font-size:0.82rem;text-align:center;padding:16px;">אין פידבקים</div>';
-      if (!Array.isArray(data) || data.length === 0) {
-        bugsEl.innerHTML = empty;
-        improvEl.innerHTML = empty;
-        return;
-      }
+
+      const renderCard = (item, idx) => `
+        <div class="card" style="margin-bottom:8px; padding:12px;">
+          <div style="font-size:0.85rem;margin-bottom:8px;">${item.text}</div>
+          <div style="display:flex; gap:8px; justify-content: flex-end;">
+            ${item.type === 'improvement' ? 
+              `<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="handleApproveFromUI('${encodeURIComponent(item.text)}')">אישור</button>` : ''
+            }
+            <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(244,63,94,0.1); color:var(--danger);" onclick="deleteFeedbackItem(${idx})">מחיקה</button>
+          </div>
+        </div>
+      `;
+
+      bugsEl.innerHTML = bugs.length ? bugs.map((item, i) => renderCard(item, i)).join('') : empty;
+      improvEl.innerHTML = improvements.length ? improvements.map((item, i) => renderCard(item, i)).join('') : empty;
+      
+    } catch(e) {
+      const err = '<div style="color:var(--danger);font-size:0.85rem;text-align:center;padding:16px;">שגיאה בטעינה</div>';
+      bugsEl.innerHTML = err;
+      improvEl.innerHTML = err;
+    }
+  }
       const bugs = data.filter((f, i) => ({ ...f, _i: i })).map((f, i) => ({ ...f, _i: i })).filter(f => f.type === 'bug');
       const improvements = data.filter((f, i) => ({ ...f, _i: i })).map((f, i) => ({ ...f, _i: i })).filter(f => f.type !== 'bug');
       // re-index with original indices
