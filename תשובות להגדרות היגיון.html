@@ -2140,18 +2140,28 @@ function logout() {
 
   // פונקציית עזר לפירוק הטקסט מהפידבק ואישורו
   async function handleApproveFromUI(encodedText) {
-    const text = decodeURIComponent(encodedText);
-    // ניסיון לחלץ הגדרה ופתרון מהטקסט (בהנחה שהם מופרדים בנקודותיים או פורמט דומה)
-    // אם הפורמט קבוע, אפשר לשפר את החילוץ כאן. כרגע נשלח את הטקסט כהגדרה.
-    const parts = text.split('|'); // דוגמה לפורמט: הגדרה | פתרון | הסבר
-    const def = parts[0] || text;
-    const sol = parts[1] || '';
-    const exp = parts[2] || '';
+    const fullText = decodeURIComponent(encodedText);
     
-    await approveSuggestion(def, sol, exp);
-    renderFeedbackList();
+    // שליחת בקשת האישור - אנחנו שולחים את fullText כהגדרה 
+    // כדי שפונקציית ה-removeFromFeedback תוכל למצוא התאמה ב-includes
+    const url = `${APPS_SCRIPT_URL}?action=approve&def=${encodeURIComponent(fullText)}&sol=&exp=`;
+    
+    try {
+      showToast('מבצע אישור והסרה...', 'info');
+      await fetch(url, { mode: 'no-cors' });
+      
+      // מחכים שנייה כדי לתת לשרת זמן לעדכן
+      setTimeout(() => {
+        renderFeedbackList(); // רענון הרשימה באתר
+        syncWithDrive();      // רענון המאגר הכללי
+        showToast('ההגדרה אושרה והוסרה מההמתנה', 'success');
+      }, 1500);
+      
+    } catch(e) {
+      console.error(e);
+      showToast('שגיאה בתהליך האישור', 'error');
+    }
   }
-
   function exportUpdatedHTML() {
     const htmlContent = document.documentElement.outerHTML;
     const entriesJson = JSON.stringify(entries, null, 0);
