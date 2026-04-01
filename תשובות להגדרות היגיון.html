@@ -1052,25 +1052,31 @@
   }
 
   function switchTab(tab) {
-    const tabNames = ['search','add','import','export','dupes','similar','delete','approvals','feedback'];
-    document.querySelectorAll('.tab-btn').forEach((b, i) => {
-      b.classList.toggle('active', tabNames[i] === tab);
-    });
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(`view-${tab}`).classList.add('active');
+  const tabNames = ['search','add','import','export','dupes','similar','delete','approvals','feedback'];
 
-    const searchWrap = document.getElementById('searchWrap');
-    if (searchWrap) {
-      searchWrap.style.display = tab === 'search' ? 'flex' : 'none';
-    }
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', tabNames[i] === tab);
+  });
 
-    if (tab === 'search') { entriesPage = 0; renderCardsPaged(currentQuery); }
-    if (tab === 'delete') renderDeleteList();
-    if (tab === 'feedback') renderFeedbackList();
-    if (tab === 'approvals') renderApprovalsList();
-    if (tab === 'similar') loadSimilar();
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${tab}`).classList.add('active');
+
+  const searchWrap = document.getElementById('searchWrap');
+  if (searchWrap) {
+    searchWrap.style.display = tab === 'search' ? 'flex' : 'none';
   }
 
+  if (tab === 'search') { 
+    entriesPage = 0; 
+    renderCardsPaged(currentQuery); 
+  }
+
+  if (tab === 'delete') renderDeleteList();
+  if (tab === 'feedback') renderFeedbackList();
+  if (tab === 'approvals') renderApprovalsList();
+  if (tab === 'similar') loadSimilar();   // ← השורה שלך תקינה
+
+} // ← זה היה חסר אצלך
   // ──────────────────────────────────────────────
   // SEARCH
   // ──────────────────────────────────────────────
