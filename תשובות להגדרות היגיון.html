@@ -999,14 +999,13 @@
 </div>
 
 <div class="toast" id="toast"></div>
-
-
+  
   // ──────────────────────────────────────────────
   // DATA LAYER
   // ──────────────────────────────────────────────
   <script>
   const STORAGE_KEY_PREFIX = 'tashbetz_entries';
-  const BUNDLED_ENTRIES = [...]; // כאן נשאר כמו אצלך – מערך ההגדרות המובנות
+  const BUNDLED_ENTRIES = [];  //כאן נשאר כמו אצלך – מערך ההגדרות המובנות
 
   function getStorageKey() {
     const email = localStorage.getItem('g_user_email');
