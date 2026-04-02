@@ -13153,7 +13153,7 @@ switchTab('search');
     const seen = {};
     let hasDupes = false;
     for (const e of entries) {
-      const key = normalizeDefinition(e.definition);
+      const key = normalize(e.definition);
       if (seen[key]) { hasDupes = true; break; }
       seen[key] = true;
     }
@@ -13416,8 +13416,8 @@ function renderCardsPaged(data) {
       if (!entry) { failed++; continue; }
 
       // Check for existing entry with same definition (normalized)
-      const normNew = normalizeDefinition(entry.definition);
-      const existingIdx = entries.findIndex(e => normalizeDefinition(e.definition) === normNew);
+      const normNew = normalize(entry.definition);
+      const existingIdx = entries.findIndex(e => normalize(e.definition) === normNew);
 
       if (existingIdx !== -1) {
         const existing = entries[existingIdx];
@@ -13605,7 +13605,7 @@ function renderCardsPaged(data) {
     const groups = [];
 
     for (const e of entries) {
-      const key = normalizeDefinition(e.definition);
+      const key = normalize(e.definition);
       if (!seen[key]) seen[key] = [];
       seen[key].push(e);
     }
@@ -13721,7 +13721,7 @@ function renderCardsPaged(data) {
     const seen = {};
     const toKeep = [];
     for (const e of entries) {
-      const key = normalizeDefinition(e.definition);
+      const key = normalize(e.definition);
       if (!seen[key]) {
         seen[key] = true;
         toKeep.push(e);
@@ -13882,10 +13882,10 @@ function renderCardsPaged(data) {
         const m = e.definition.match(/\((\d[\d,]*)\)/);
         if (m) e.letters = m[1];
       }
-      const key = normalizeDefinition(e.definition);
+      const key = normalize(e.definition);
       if (!seen[key]) { seen[key] = true; result.push(e); }
       else {
-        const idx = result.findIndex(r => normalizeDefinition(r.definition) === key);
+        const idx = result.findIndex(r => normalize(r.definition) === key);
         if (idx !== -1) {
           if (!result[idx].solution && e.solution) result[idx].solution = e.solution;
           if (!result[idx].explanation && e.explanation) result[idx].explanation = e.explanation;
