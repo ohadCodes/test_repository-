@@ -12980,16 +12980,7 @@
     const email = localStorage.getItem('g_user_email');
     return email ? STORAGE_KEY_PREFIX + '_' + email : STORAGE_KEY_PREFIX + '_public';
   }
-
-  function loadData() {
-    try {
-      const cached = JSON.parse(localStorage.getItem(getStorageKey()));
-      if (cached && cached.length > 0) return cached;
-    } catch {}
-    // fallback לנתונים המוטמעים בקובץ
-    return BUNDLED_ENTRIES;
-  }
-
+  
   function saveData(data) {
     localStorage.setItem(getStorageKey(), JSON.stringify(data));
     updateStats();
@@ -12998,8 +12989,6 @@
       saveData._timer = setTimeout(() => writeEntriesToDrive(data), 2000);
     }
   }
-
-
 
   // ──────────────────────────────────────────────
   // UI
