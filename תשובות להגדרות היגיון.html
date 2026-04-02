@@ -12934,6 +12934,23 @@
   let currentUserEmail = '';
   let isSyncEnabled = false; // ברירת מחדל: סינכרון כבוי
   let allEntries = [...BUNDLED_ENTRIES]; // טעינת הנתונים מהקובץ עצמו
+  let entries = loadData();
+  let currentQuery = '';
+  let currentFilter = 'all';
+  let sortAZ = true;
+  let searchField = 'definition';
+  let entriesPage = 0;
+  let toastTimer;
+  let definition = '', solution = '', explanation = '', letters = '', type = '';
+  let gAccessToken = localStorage.getItem('g_access_token') || null;
+  let gUserEmail = localStorage.getItem('g_user_email') || null;
+  let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
+  let isSyncing = false;
+  let selectedForDelete = new Set();
+  let feedbackType = 'bug';
+
+  const ENTRIES_PAGE_SIZE = 1000; // שנה כאן את הכמות לטעינה בכל עמוד
+  
   // ──────────────────────────────────────────────
   // DATA LAYER
   // ──────────────────────────────────────────────
@@ -12964,14 +12981,7 @@
     }
   }
 
-  let entries = loadData();
-  let currentQuery = '';
-  let currentFilter = 'all';
-  let sortAZ = true;
-  let searchField = 'definition';
 
-  const ENTRIES_PAGE_SIZE = 1000; // שנה כאן את הכמות לטעינה בכל עמוד
-  let entriesPage = 0;
 
   // ──────────────────────────────────────────────
   // UI
@@ -13238,7 +13248,6 @@ switchTab('search');
     // Split by | separator
     const parts = line.split('|').map(p => p.trim());
 
-    let definition = '', solution = '', explanation = '', letters = '', type = '';
 
     for (const part of parts) {
       if (part.startsWith('ההגדרה:') || part.startsWith('הגדרה:')) {
@@ -13464,7 +13473,7 @@ switchTab('search');
   // ──────────────────────────────────────────────
   // TOAST
   // ──────────────────────────────────────────────
-  let toastTimer;
+  
   function showToast(msg, type = '') {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -13646,10 +13655,7 @@ switchTab('search');
   const ENTRIES_FILENAME = 'tashbetz_entries.json';
   const FORMS_URL = 'https://forms.gle/sGWX4LKuUzSFeSjd6';
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec';
-  let gAccessToken = localStorage.getItem('g_access_token') || null;
-  let gUserEmail = localStorage.getItem('g_user_email') || null;
-  let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
-  let isSyncing = false;
+
   async function apiGetJson(query, timeoutMs = 12000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -14029,7 +14035,6 @@ function logout() {
     // ──────────────────────────────────────────────
   // DELETE VIEW
   // ──────────────────────────────────────────────
-  let selectedForDelete = new Set();
 
   function renderDeleteList() {
     const query = (document.getElementById('deleteSearchInput')?.value || '').trim().toLowerCase();
@@ -14108,7 +14113,6 @@ function logout() {
   // ──────────────────────────────────────────────
   // FEEDBACK MODAL
   // ──────────────────────────────────────────────
-  let feedbackType = 'bug';
 
   function openFeedbackModal() {
     document.getElementById('feedback-text').value = '';
@@ -14275,8 +14279,5 @@ function logout() {
     a.click();
   }
 </script>
-
-
-
-
-</body></html>
+</body>
+</html>
