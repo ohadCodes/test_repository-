@@ -1,40 +1,41 @@
-const CACHE_NAME = 'logic-riddles-v1';
+const CACHE_NAME = 'logic-riddles-v2'; // עדכון גרסה לרענון המטמון
 
-// רשימת הקבצים שחובה לשמור כדי שהאתר יעבוד באופליין
-// חשוב: השמות כאן חייבים להיות זהים לשמות הקבצים בתיקייה שלך
+// רשימת הקבצים לשמירה - וודא שהשמות תואמים בדיוק לשמות הקבצים בתיקייה
 const urlsToCache = [
   './',
   './תשובות להגדרות היגיון(1).html',
   './manifest.json'
 ];
-const assets = [
-  '/',
-  'index.html',
-  'style.css',
-  'app.js',
-  'manifest.json',
-  'favicon.ico' // <--- רוב הסיכויים שהבעיה כאן!
-];
-// התקנה של ה-Service Worker ושמירת הקבצים במטמון (Cache)
+
+// התקנה של ה-Service Worker
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker: שומר קבצים לעבודה ללא אינטרנט');
-        return cache.addAll(urlsToCache);
+        console.log('Service Worker: מנסה לשמור קבצים במטמון...');
+        
+        // שימוש ב-Promise.allSettled כדי למנוע קריסה אם קובץ אחד חסר
+        return Promise.allSettled(
+          urlsToCache.map(url => 
+            cache.add(url).catch(err => console.warn(`נכשלה טעינת הקובץ: ${url}`, err))
+          )
+        );
       })
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log('Service Worker: התקנה הושלמה');
+        return self.skipWaiting();
+      })
   );
 });
 
-// ניקוי גרסאות ישנות של המטמון בעת עדכון
+// ניקוי מטמון ישן בעת הפעלה (Activation)
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: מנקה מטמון ישן');
+            console.log('Service Worker: מנקה מטמון ישן', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -43,27 +44,31 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ניהול בקשות הרשת (Fetch)
+// ניהול בקשות רשת (Fetch Strategy: Network First)
 self.addEventListener('fetch', event => {
-  const url = event.request.url;
+  // דילוג על בקשות שאינן GET (כמו POST של גוגל)
+  if (event.request.method !== 'GET') return;
 
-  // אם זו בקשה לחיפוש בגוגל (Drive/Scripts) - נסה רשת, אם נכשל הבא מהמטמון
-  if (url.includes('script.google.com') || url.includes('googleusercontent.com')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        // אם הצלחנו להביא מהרשת, נשמור עותק במטמון
+        if (response && response.status === 200) {
           const resClone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-  } else {
-    // עבור קבצי האתר (HTML, CSS הפנימי) - שלוף מהמטמון קודם
-    event.respondWith(
-      caches.match(event.request).then(response => {
-        return response || fetch(event.request);
+        }
+        return response;
       })
-    );
-  }
+      .catch(() => {
+        // אם אין אינטרנט, ננסה להביא מהמטמון
+        return caches.match(event.request).then(cachedResponse => {
+          if (cachedResponse) return cachedResponse;
+          
+          // אם זה דף HTML ואין במטמון, נחזיר את דף הבית (Fallback)
+          if (event.request.headers.get('accept').includes('text/html')) {
+            return caches.match('./תשובות להגדרות היגיון(1).html');
+          }
+        });
+      })
+  );
 });
