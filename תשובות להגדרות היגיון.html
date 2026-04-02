@@ -12930,26 +12930,19 @@
 
 <script>
   // הגדרת משתנים גלובליים בראש הסקריפט למניעת שגיאות initialization
-  let isOwner = false; 
-  let currentUserEmail = '';
-  let isSyncEnabled = false; // ברירת מחדל: סינכרון כבוי
-  let allEntries = []; // טעינת הנתונים מהקובץ עצמו
+  let allEntries = []; 
+  let entries = []; 
   let currentQuery = '';
   let currentFilter = 'all';
   let sortAZ = true;
   let searchField = 'definition';
+  const ENTRIES_PAGE_SIZE = 1000; 
   let entriesPage = 0;
-  let toastTimer;
+  // משתני עזר ותפעול
   let definition = '', solution = '', explanation = '', letters = '', type = '';
-  let gAccessToken = localStorage.getItem('g_access_token') || null;
-  let gUserEmail = localStorage.getItem('g_user_email') || null;
-  let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
-  let isSyncing = false;
+  let toastTimer;
   let selectedForDelete = new Set();
   let feedbackType = 'bug';
-
-  const ENTRIES_PAGE_SIZE = 1000; // שנה כאן את הכמות לטעינה בכל עמוד
-  
   // ──────────────────────────────────────────────
   // DATA LAYER
   // ──────────────────────────────────────────────
