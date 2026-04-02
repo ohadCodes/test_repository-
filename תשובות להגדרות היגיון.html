@@ -13106,8 +13106,16 @@ switchTab('search');
   }
 
   function normalize(str) {
-    return str.replace(/[ְִֵֶַָֹֻּׁׂ]/g, '').toLowerCase();
-  }
+    // הגנה: אם str הוא לא טקסט, אל תנסה להריץ replace אלא תחזיר טקסט ריק
+    if (typeof str !== 'string' || !str) return '';
+
+    return str
+        .replace(/"/g, '')
+        .replace(/'/g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/[.,?!]/g, '')
+        .trim();
+}
 
   function highlightText(text, query) {
     if (!query) return escapeHtml(text);
@@ -13156,22 +13164,25 @@ switchTab('search');
     return a.definition.localeCompare(b.definition, 'he');
   }
 function renderCardsPaged(data) {
-  const container = document.getElementById('results-container'); // ודא שזה ה-ID של הדיב שלך
-  if (!container) return;
-  
-  // מציג רק את ה-1000 הראשונים בטעינה ראשונית
-  const fragment = document.createDocumentFragment();
-  const itemsToShow = data.slice(0, ENTRIES_PAGE_SIZE);
-  
-  itemsToShow.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `<h3>${item.definition}</h3><p>${item.solution}</p>`; // התאם למבנה שלך
-    fragment.appendChild(card);
-  });
-  
-  container.innerHTML = '';
-  container.appendChild(fragment);
+    const container = document.getElementById('results-container');
+    if (!container) return;
+
+    // ניקוי המיכל
+    container.innerHTML = '';
+    
+    // מציג רק חלק מהנתונים כדי לא לתקוע את הדפדפן
+    const itemsToShow = data.slice(0, 1000);
+
+    itemsToShow.forEach(item => {
+        // שימוש ב-normalize בצורה בטוחה על השדות
+        const def = normalize(item.definition || '');
+        const sol = normalize(item.solution || '');
+        
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h3>${def}</h3><p>${sol}</p>`;
+        container.appendChild(card);
+    });
 }
   function renderCardsPaged(query) {
     updateFilterButtons();
