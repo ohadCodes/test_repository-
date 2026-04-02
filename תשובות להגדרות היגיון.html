@@ -13157,12 +13157,16 @@ switchTab('search');
           </div>
         </div>
         <div class="card-solution">◈ ${e.solution ? (searchField === 'solution' ? highlightText(e.solution, query) : escapeHtml(e.solution)) : '<span style="color:var(--danger);font-size:0.9rem;font-family:Rubik,sans-serif;font-weight:400">ללא תשובה</span>'}</div>
+        
         ${e.explanation ? `<div class="card-divider"></div><div class="card-explanation">${searchField === 'explanation' ? highlightText(e.explanation, query) : escapeHtml(e.explanation)}</div>` : ''}
-        ${isOwner ? `<div class="card-actions">` : ''}
-          <button class="btn-icon" onclick="openEdit('${e.id}')">עריכה</button>
-        </div>` : ''}
+        
+        ${isOwner ? `
+          <div class="card-actions">
+            <button class="btn-icon" onclick="openEdit('${e.id}')">עריכה</button>
+          </div>` : ''}
       </div>
     `).join('');
+
     if (end < filtered.length) {
       list.innerHTML += `<div style="text-align:center;margin:20px 0;"><button class="btn" onclick="loadMoreEntries()">טען עוד (${filtered.length - end} נוספים)</button></div>`;
     }
