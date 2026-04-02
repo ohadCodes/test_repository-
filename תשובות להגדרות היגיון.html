@@ -13138,7 +13138,7 @@ switchTab('search');
     renderCardsPaged(currentQuery);
   }
 
-  function updateFilterButtons() {
+  function normalize() {
     const hasNoExplanation = entries.some(e => !e.explanation || !e.explanation.trim());
     const hasNoSolution = entries.some(e => !e.solution || !e.solution.trim());
     const btnExp = document.getElementById('filter-no-explanation');
