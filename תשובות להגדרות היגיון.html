@@ -12996,16 +12996,23 @@
     return email ? STORAGE_KEY_PREFIX + '_' + email : STORAGE_KEY_PREFIX + '_public';
   }
   function loadData() {
-  // ניסיון ראשון: לקחת מהזיכרון המקומי של הדפדפן (אם המשתמש הוסיף הגדרות בעצמו)
   const saved = localStorage.getItem('tashbetz_entries');
   if (saved) {
-      try { return JSON.parse(saved); } catch(e) { console.error(e); }
+      try { 
+          const parsed = JSON.parse(saved);
+          // בודק שזה אכן מערך ושיש בו נתונים
+          if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed; 
+          }
+      } catch(e) { 
+          console.error("שגיאה בטעינה מהזיכרון המקומי", e); 
+      }
   }
-  // ניסיון שני: לקחת מהמאגר המובנה בקובץ (ה-14,000 שורות)
+
   if (typeof BUNDLED_ENTRIES !== 'undefined') {
-      return [...BUNDLED_ENTRIES];
+      return BUNDLED_ENTRIES;
   }
-  return []; // מוצא אחרון: מערך ריק
+  return [];
 }
   
   function saveData(data) {
