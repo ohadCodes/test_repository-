@@ -7,7 +7,14 @@ const urlsToCache = [
   './תשובות להגדרות היגיון(1).html',
   './manifest.json'
 ];
-
+const assets = [
+  '/',
+  'index.html',
+  'style.css',
+  'app.js',
+  'manifest.json',
+  'favicon.ico' // <--- רוב הסיכויים שהבעיה כאן!
+];
 // התקנה של ה-Service Worker ושמירת הקבצים במטמון (Cache)
 self.addEventListener('install', event => {
   event.waitUntil(
