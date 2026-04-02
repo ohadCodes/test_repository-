@@ -12945,39 +12945,52 @@
   let feedbackType = 'bug';
   // ──────────────────────────────────────────────
   // DATA LAYER
-  // ──────────────────────────────────────────────
-  window.onload = function() {
-    console.log("מערכת נטענת...");
+  // ──────────────────────────────────────────────window.onload = function() {
+    console.log("המערכת בטעינה... בודק נתונים ב-tashbetz_entries");
 
-    // 1. טעינה ראשונית מהקובץ (תמיד קיים)
-    if (typeof BUNDLED_ENTRIES !== 'undefined') {
-        allEntries = [...BUNDLED_ENTRIES];
+    try {
+      // 1. טעינה ראשונית - קודם כל מהקובץ המקומי (BUNDLED_ENTRIES)
+      // אנחנו משתמשים ב-window. כדי למנוע שגיאות ReferenceError אם המשתנה מוגדר בסוף
+      if (window.BUNDLED_ENTRIES && Array.isArray(window.BUNDLED_ENTRIES)) {
+          allEntries = [...window.BUNDLED_ENTRIES];
+          console.log("נתונים נטענו מהקובץ: " + allEntries.length);
+      }
+
+      // 2. בדיקה אם יש נתונים חדשים יותר ב-LocalStorage (סנכרון קודם או עריכות)
+      const savedData = localStorage.getItem('tashbetz_entries');
+      if (savedData) {
+          const parsed = JSON.parse(savedData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+              allEntries = parsed;
+              console.log("נמצאו נתונים מעודכנים בזיכרון המקומי: " + allEntries.length);
+          }
+      }
+
+      // 3. הכנת המערך לעבודה (חיפושים ותצוגה)
+      entries = [...allEntries];
+
+      // 4. הצגה ראשונית של התוצאות (עמוד ראשון)
+      if (typeof renderCardsPaged === "function") {
+          renderCardsPaged(entries);
+      } else if (typeof render === "function") {
+          render();
+      }
+
+      // 5. עדכון הסטטיסטיקה (הבאדג' בראש הדף)
+      const statsBadge = document.querySelector('.stats-badge');
+      if (statsBadge) {
+          statsBadge.textContent = allEntries.length.toLocaleString() + ' הגדרות במאגר';
+      }
+
+      // 6. בדיקת הרשאות מנהל וחיבור לגוגל
+      if (typeof checkOwnerStatus === "function") {
+          checkOwnerStatus();
+      }
+
+    } catch (err) {
+      console.error("שגיאה קריטית בזמן טעינת הדף:", err);
+      showToast("שגיאה בטעינת הנתונים", "error");
     }
-
-    // 2. ניסיון לעדכן נתונים מהזיכרון המקומי (אם המשתמש הוסיף/שינה דברים)
-    const savedData = localStorage.getItem('tashbetz_entries');
-    if (savedData) {
-        try {
-            allEntries = JSON.parse(savedData);
-            console.log("נטענו נתונים מעודכנים מהזיכרון המקומי");
-        } catch(e) {
-            console.error("שגיאה בקריאת הזיכרון המקומי, טוען מהקובץ בלבד", e);
-        }
-    }
-
-    // 3. הצגת הנתונים
-    entries = [...allEntries];
-    if (typeof renderCardsPaged === "function") {
-        renderCardsPaged(entries);
-    }
-
-    // 4. עדכון הבאדג' (העיגול עם המספר)
-    const statsBadge = document.querySelector('.stats-badge');
-    if (statsBadge) {
-        statsBadge.textContent = allEntries.length.toLocaleString() + ' הגדרות';
-    }
-
-    checkOwnerStatus();
   };
 
     // הפעלת התצוגה
@@ -12996,23 +13009,24 @@
     return email ? STORAGE_KEY_PREFIX + '_' + email : STORAGE_KEY_PREFIX + '_public';
   }
   function loadData() {
-  const saved = localStorage.getItem('tashbetz_entries');
-  if (saved) {
-      try { 
-          const parsed = JSON.parse(saved);
-          // בודק שזה אכן מערך ושיש בו נתונים
-          if (Array.isArray(parsed) && parsed.length > 0) {
-              return parsed; 
-          }
-      } catch(e) { 
-          console.error("שגיאה בטעינה מהזיכרון המקומי", e); 
-      }
-  }
+    // בדיקה אם יש נתונים ב-LocalStorage (עדכונים אחרונים)
+    const saved = localStorage.getItem('tashbetz_entries');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) { console.error("Error loading local storage", e); }
+    }
 
-  if (typeof BUNDLED_ENTRIES !== 'undefined') {
-      return BUNDLED_ENTRIES;
-  }
-  return [];
+    // אם אין בזיכרון המקומי, ניגשים למערך הענק בסוף הקובץ
+    // אנחנו משתמשים ב-window כדי למנוע את שגיאת ה-ReferenceError
+    if (window.BUNDLED_ENTRIES) {
+        return window.BUNDLED_ENTRIES;
+    }
+    
+    // אם גם זה לא נמצא, אולי המשתנה נקרא tashbetz_entries.json במקום אחר?
+    // נחזיר מערך ריק כברירת מחדל כדי שהאתר לא יקרוס
+    return [];
 }
   
   function saveData(data) {
