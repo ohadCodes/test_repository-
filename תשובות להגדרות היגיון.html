@@ -12938,6 +12938,7 @@
   let searchField = 'definition';
   const ENTRIES_PAGE_SIZE = 1000; 
   let entriesPage = 0;
+  let isOwner = false; // שורה זו חייבת להיות כאן בראש הקוד!
   // משתני עזר ותפעול
   let definition = '', solution = '', explanation = '', letters = '', type = '';
   let toastTimer;
@@ -13167,22 +13168,25 @@ function renderCardsPaged(data) {
     const container = document.getElementById('results-container');
     if (!container) return;
 
-    // ניקוי המיכל
-    container.innerHTML = '';
-    
-    // מציג רק חלק מהנתונים כדי לא לתקוע את הדפדפן
-    const itemsToShow = data.slice(0, 1000);
+    // לוקחים רק את ה-1000 הראשונים לביצועים
+    const chunk = data.slice(0, 1000);
 
-    itemsToShow.forEach(item => {
-        // שימוש ב-normalize בצורה בטוחה על השדות
-        const def = normalize(item.definition || '');
-        const sol = normalize(item.solution || '');
+    // ניקוי ובנייה מחדש בפעולה אחת
+    container.innerHTML = chunk.map(item => {
+        // בדיקה בטוחה של משתנה הניהול
+        const canEdit = (typeof isOwner !== 'undefined' && isOwner);
         
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `<h3>${def}</h3><p>${sol}</p>`;
-        container.appendChild(card);
-    });
+        const def = item.definition || '';
+        const sol = item.solution || '';
+        
+        return `
+            <div class="card">
+                <h3>${def}</h3>
+                <p>${sol}</p>
+                ${canEdit ? `<button class="edit-btn" onclick="editEntry('${item.id}')">עריכה</button>` : ''}
+            </div>
+        `;
+    }).join('');
 }
   function renderCardsPaged(query) {
     updateFilterButtons();
@@ -13391,13 +13395,16 @@ function renderCardsPaged(data) {
     document.getElementById('pasteArea').value = '';
   }
 
-  function normalizeDefinition(str) {
-    return String(str || '')
-      .trim()
-      .replace(/\s*\(\d[\d,\s-]*\)\s*$/, '')
-      .replace(/\s+/g, ' ')
-      .toLowerCase();
-  }
+  function normalize(str) {
+    // אם זה לא טקסט (null/undefined), החזר מחרוזת ריקה במקום לקרוס
+    if (typeof str !== 'string' || !str) return '';
+
+    return str
+        .replace(/"/g, '')
+        .replace(/'/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
 
   function processImportText(text) {
     const lines = text.split('\n');
