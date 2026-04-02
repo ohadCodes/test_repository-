@@ -12980,21 +12980,34 @@
     }
   }
 
-  function switchTab(tab) {
-    const tabNames = ['search','add','import','export','dupes','similar','delete','approvals','feedback'];
-    document.querySelectorAll('.tab-btn').forEach((b, i) => {
-      b.classList.toggle('active', tabNames[i] === tab);
-    });
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(`view-${tab}`).classList.add('active');
-    document.getElementById('searchWrap').style.display = tab === 'search' ? 'flex' : 'none';
-    if (tab === 'search') { entriesPage = 0; renderCardsPaged(currentQuery); }
-    if (tab === 'delete') renderDeleteList();
-    if (tab === 'feedback') renderFeedbackList();
-    if (tab === 'approvals') renderApprovalsList();
-    if (tab === 'similar') loadSimilar();
-  }
+ function switchTab(tab) {
+  // עדכון כפתורים: מחפש את הכפתור שה-onclick שלו מכיל את שם הטאב
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${tab}'`));
+  });
 
+  // הסרת active מכל התצוגות והוספה לתצוגה הנבחרת
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const targetView = document.getElementById(`view-${tab}`);
+  if (targetView) targetView.classList.add('active');
+
+  // לוגיקה ספציפית לחיפוש
+  document.getElementById('searchWrap').style.display = tab === 'search' ? 'flex' : 'none';
+  
+  if (tab === 'search') { 
+    entriesPage = 0; 
+    renderCardsPaged(currentQuery || ""); // הוספת הגנה למקרה ש-currentQuery ריק
+  }
+  
+  // טעינת רשימות לפי הצורך
+  if (tab === 'delete') renderDeleteList();
+  if (tab === 'feedback') renderFeedbackList();
+  if (tab === 'approvals') renderApprovalsList();
+  if (tab === 'similar') loadSimilar();
+}
+
+// שורת הקסם: מפעיל את הטאב הנכון מיד כשהסקריפט נטען
+switchTab('search');
   // ──────────────────────────────────────────────
   // SEARCH
   // ──────────────────────────────────────────────
