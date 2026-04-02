@@ -13160,9 +13160,9 @@ switchTab('search');
         
         ${e.explanation ? `<div class="card-divider"></div><div class="card-explanation">${searchField === 'explanation' ? highlightText(e.explanation, query) : escapeHtml(e.explanation)}</div>` : ''}        
         ${isOwner ? `
-          <div class="card-actions">
-            <button class="btn-icon" onclick="openEdit('${e.id}')">עריכה</button>
-          </div>` : ''}
+  <div class="card-actions">
+    <button class="btn-icon" onclick="openEdit('${e.id}')">עריכה</button>
+  </div>` : ''}
       </div>
     `).join('');
 
