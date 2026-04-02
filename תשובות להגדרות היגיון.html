@@ -12947,14 +12947,38 @@
   // DATA LAYER
   // ──────────────────────────────────────────────
   window.onload = function() {
-    // עכשיו BUNDLED_ENTRIES כבר מוכר לדפדפן
+    console.log("מערכת נטענת...");
+
+    // 1. טעינה ראשונית מהקובץ (תמיד קיים)
     if (typeof BUNDLED_ENTRIES !== 'undefined') {
         allEntries = [...BUNDLED_ENTRIES];
-        entries = [...allEntries];
-        console.log("הנתונים נטענו בהצלחה מהקובץ: " + allEntries.length + " שורות");
-    } else {
-        console.error("שגיאה: לא נמצא מערך נתונים בקובץ!");
     }
+
+    // 2. ניסיון לעדכן נתונים מהזיכרון המקומי (אם המשתמש הוסיף/שינה דברים)
+    const savedData = localStorage.getItem('tashbetz_entries');
+    if (savedData) {
+        try {
+            allEntries = JSON.parse(savedData);
+            console.log("נטענו נתונים מעודכנים מהזיכרון המקומי");
+        } catch(e) {
+            console.error("שגיאה בקריאת הזיכרון המקומי, טוען מהקובץ בלבד", e);
+        }
+    }
+
+    // 3. הצגת הנתונים
+    entries = [...allEntries];
+    if (typeof renderCardsPaged === "function") {
+        renderCardsPaged(entries);
+    }
+
+    // 4. עדכון הבאדג' (העיגול עם המספר)
+    const statsBadge = document.querySelector('.stats-badge');
+    if (statsBadge) {
+        statsBadge.textContent = allEntries.length.toLocaleString() + ' הגדרות';
+    }
+
+    checkOwnerStatus();
+  };
 
     // הפעלת התצוגה
     renderCardsPaged(entries);
