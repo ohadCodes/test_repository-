@@ -12902,7 +12902,13 @@
       </div>
     </div>
   </div>
-
+<div id="tab-approvals" class="tab-content" style="display:none;">
+  <div class="search-container">
+    <h2 style="color: var(--accent); margin-bottom: 20px; text-align: center;">ניהול הצעות מהמשתמשים</h2>
+    <div id="approvals-list">
+      </div>
+  </div>
+</div>
 </main>
 
 <!-- MODAL -->
@@ -13995,6 +14001,14 @@ function renderCardsPaged(data) {
     });
     // הצג/הסתר כפתור "הצעת הגדרה"
     const suggestBtn = document.getElementById('suggest-btn');
+    if (isOwner) {
+    // מציג את כפתור ההצעות ששלחת
+    const btn = document.getElementById('tab-approvals');
+    if (btn) btn.style.display = 'inline-block';
+    
+    // טוען את הרשימה מהשרת
+    renderApprovalsList();
+  }
     if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
     const feedbackBtn = document.getElementById('feedback-btn');
     if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
@@ -14478,9 +14492,65 @@ if (typeof gAccessToken !== 'undefined' && gAccessToken &&
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
     });
   }
+  // פונקציה לטעינת והצגת ההצעות
+async function renderApprovalsList() {
+  const container = document.getElementById('approvals-list');
+  const badge = document.querySelector('#tab-approvals .count-badge');
+  container.innerHTML = '<div style="text-align:center; padding:20px;">טוען הצעות...</div>';
+  
+  try {
+    const data = await apiGetJson('?action=getFeedback');
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p style="text-align:center; opacity:0.7;">אין הצעות חדשות כרגע.</p>';
+      if (badge) badge.style.display = 'none';
+      return;
+    }
+
+    // עדכון המונה בבאדג' שעל הכפתור שלך
+    if (badge) {
+      badge.innerText = data.length;
+      badge.style.display = 'inline-block';
+    }
+
+    container.innerHTML = data.map((item) => `
+      <div class="card" style="border-right: 4px solid var(--accent); margin-bottom:15px;">
+        <h3 style="color:var(--accent);">${item.definition}</h3>
+        <p><strong>פתרון מוצע:</strong> ${item.solution}</p>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button onclick="approveItem('${item.id}')" style="background:var(--success); color:white; border:none; padding:10px; border-radius:5px; flex:1; cursor:pointer;">אשר והוסף</button>
+          <button onclick="deleteItem('${item.id}')" style="background:var(--error); color:white; border:none; padding:10px; border-radius:5px; flex:1; cursor:pointer;">מחק</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<p style="text-align:center; color:var(--error);">שגיאה בטעינת הצעות.</p>';
+  }
+}
+
+// פונקציות עזר לאישור ומחיקה (מתקשרות עם ה-Script בשרת)
+async function approveItem(id) {
+  if (!confirm('לאשר ולהוסיף למאגר?')) return;
+  try {
+    const resp = await fetch(SCRIPT_URL + '?action=approveFeedback&id=' + id);
+    if (resp.ok) {
+      showToast('התווסף בהצלחה', 'success');
+      renderApprovalsList();
+      syncWithDrive(); // סנכרון המאגר המרכזי
+    }
+  } catch (e) { showToast('שגיאה באישור', 'error'); }
+}
+
+async function deleteItem(id) {
+  if (!confirm('למחוק את ההצעה?')) return;
+  try {
+    const resp = await fetch(SCRIPT_URL + '?action=deleteFeedback&id=' + id);
+    if (resp.ok) {
+      showToast('ההצעה נמחקה', 'success');
+      renderApprovalsList();
+    }
+  } catch (e) { showToast('שגיאה במחיקה', 'error'); }
+}
 </script>
 </body>
 </html>
 </script>
-</body>
-</html>
