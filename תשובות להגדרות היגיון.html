@@ -13006,6 +13006,9 @@
 
 <script>
   // הגדרת משתנים גלובליים בראש הסקריפט למניעת שגיאות initialization
+  let gUserEmail = '';
+  const OWNER_EMAIL = '012ohad@gmail.com';
+  let gAccessToken = null; // הגדרת משתנה גלובלי לאסימון הגישה
   let allEntries = []; 
   let entries = []; 
   let currentQuery = '';
@@ -14195,12 +14198,15 @@ function logout() {
     } catch(e) { showToast('שגיאה', 'error'); }
   }
 
-  if (gAccessToken && gUserEmail === OWNER_EMAIL) {
+  // בדיקה בטוחה שמוודאת שהמשתנים קיימים ושיש להם ערך
+if (typeof gAccessToken !== 'undefined' && gAccessToken && 
+    typeof gUserEmail !== 'undefined' && gUserEmail === OWNER_EMAIL) {
+    
     isOwner = true;
     updateSyncBtn('connected');
     setTimeout(() => { syncWithDrive(); updateOwnerUI(); }, 1500);
     setInterval(() => syncWithDrive(), 5 * 60 * 1000);
-  }
+}
 
     // ──────────────────────────────────────────────
   // DELETE VIEW
