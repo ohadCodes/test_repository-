@@ -14572,7 +14572,47 @@ async function deleteItem(id) {
     showToast('שגיאה בתקשורת עם השרת', 'error');
   }
 }
+// משתנה גלובלי שיחזיק את הלקוח של גוגל
+let tokenClient;
 
+// פונקציה שמבצעת רק את האתחול - תקרא לה בטעינת הדף
+function initGoogleAuth() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { showToast('שגיאה בהתחברות', 'error'); return; }
+      gAccessToken = resp.access_token;
+      localStorage.setItem('g_access_token', gAccessToken);
+      
+      try {
+        const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { 'Authorization': `Bearer ${gAccessToken}` }
+        });
+        const u = await info.json();
+        gUserEmail = u.email;
+        localStorage.setItem('g_user_email', gUserEmail);
+      } catch(e) {}
+
+      isOwner = gUserEmail === OWNER_EMAIL;
+      if (!isOwner) {
+        showToast('רק המנהל יכול להתחבר', 'error');
+        gAccessToken = null;
+        return;
+      }
+
+      showToast('✅ מחובר כמנהל', 'success');
+      updateOwnerUI();
+      await syncWithDrive();
+    }
+  });
+}
+
+// פונקציה חדשה שמופעלת *רק* בלחיצה על כפתור התחברות
+function handleAuthClick() {
+  if (!tokenClient) initGoogleAuth();
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
 function exportUpdatedHTML() {
   const htmlContent = document.documentElement.outerHTML;
   const entriesJson = JSON.stringify(entries, null, 0);
@@ -14605,7 +14645,33 @@ setTimeout(() => {
   }
 }, 1000);
   }
+  a.href = URL.createObjectURL(blob);
+    a.download = 'updated_riddles.html';
+    a.click();
+  }
+
+  // --- לוגיקת הרצה בטעינה (מצב אורח) ---
   
+  // 1. אתחול הגדרות גוגל בלי להקפיץ חלון
+  initGoogleAuth();
+
+  // 2. הגדרת מצב אורח כברירת מחדל
+  isOwner = false;
+  updateOwnerUI();
+
+  // 3. הצגת טאב החיפוש
+  switchTab('search');
+
+  // 4. הסרת מסך הפתיחה
+  setTimeout(() => {
+    const splash = document.getElementById('splash');
+    if (splash) {
+      splash.style.opacity = '0';
+      setTimeout(() => splash.remove(), 500);
+    }
+  }, 1000);
+
 </script>
 </body>
 </html>
+
