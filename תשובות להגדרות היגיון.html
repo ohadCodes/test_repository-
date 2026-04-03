@@ -13863,46 +13863,56 @@ function renderCardsPaged(data) {
     else syncWithDrive();
   }
 
-  function signInGoogle() {
-    const client = google.accounts.oauth2.initTokenClient({
-      client_id: GDRIVE_CLIENT_ID,
-      scope: GDRIVE_SCOPE,
-      callback: async (resp) => {
-        if (resp.error) { showToast('שגיאה בהתחברות', 'error'); return; }
-        gAccessToken = resp.access_token;
-        localStorage.setItem('g_access_token', gAccessToken);
-        try {
-          const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { 'Authorization': `Bearer ${gAccessToken}` }
-          });
-          const u = await info.json();
-          gUserEmail = u.email;
-          localStorage.setItem('g_user_email', gUserEmail);
-        } catch(e) {}
-        isOwner = gUserEmail === OWNER_EMAIL;
-        if (!isOwner) {
-          showToast('רק המנהל יכול להתחבר', 'error');
-          gAccessToken = null;
-          localStorage.removeItem('g_access_token');
-          return;
-        }
-        updateSyncBtn('connected');
-        showToast('✅ מחובר כמנהל', 'success');
+  function signInGoogle() {// פונקציית התחברות שמופעלת רק בלחיצה
+function handleAuthClick() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { showToast('שגיאה בהתחברות', 'error'); return; }
+      gAccessToken = resp.access_token;
+      localStorage.setItem('g_access_token', gAccessToken);
+      
+      try {
+        const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { 'Authorization': `Bearer ${gAccessToken}` }
+        });
+        const u = await info.json();
+        gUserEmail = u.email;
+        localStorage.setItem('g_user_email', gUserEmail);
+      } catch(e) { console.error("UserInfo Fetch Error:", e); }
+
+      isOwner = gUserEmail === OWNER_EMAIL;
+
+      if (!isOwner) {
+        showToast('רק המנהל יכול להתחבר', 'error');
+        gAccessToken = null;
+        localStorage.removeItem('g_access_token');
+        isOwner = false; // וידוא מצב אורח
         updateOwnerUI();
-        // טען נתונים מהקאש האישי (מפתח ספציפי לחשבון)
-        const ownerKey = STORAGE_KEY_PREFIX + '_' + gUserEmail;
-        try {
-          const cached = JSON.parse(localStorage.getItem(ownerKey));
-          if (cached && cached.length > 0) {
-            entries = cached;
-            renderCardsPaged('');
-          }
-        } catch(e) {}
-        await syncWithDrive();
+        return;
       }
-    });
-    client.requestAccessToken();
-  }
+
+      updateSyncBtn('connected');
+      showToast('✅ מחובר כמנהל', 'success');
+      updateOwnerUI();
+
+      // טעינת נתונים
+      const ownerKey = STORAGE_KEY_PREFIX + '_' + gUserEmail;
+      try {
+        const cached = JSON.parse(localStorage.getItem(ownerKey));
+        if (cached && cached.length > 0) {
+          entries = cached;
+          renderCardsPaged('');
+        }
+      } catch(e) {}
+      await syncWithDrive();
+    }
+  });
+
+  // הבקשה להתחברות קורה רק כאן - כלומר רק כשקראו לפונקציה handleAuthClick
+  client.requestAccessToken();
+}
 
   async function driveRequest(url, options = {}) {
     const res = await fetch(url, {
