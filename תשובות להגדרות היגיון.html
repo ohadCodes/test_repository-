@@ -810,8 +810,8 @@
   <button class="tab-btn owner-only" id="tab-dupes" onclick="switchTab('dupes')" style="display: none;">🔎 הגדרות כפולות</button>
   <button class="tab-btn owner-only" id="tab-similar" onclick="switchTab('similar')" style="display: inline-block;">🔍 הגדרות דומות</button>
   <button class="tab-btn owner-only" id="tab-delete" onclick="switchTab('delete')" style="display: inline-block;">🗑️ מחיקת הגדרות</button>
-  <button class="tab-btn owner-only" id="tab-approvals" onclick="switchTab('approvals')" style="display: inline-block;">📬 הצעות <span class="count-badge">2</span></button>
-  <button class="tab-btn owner-only" id="tab-feedback" onclick="switchTab('feedback')" style="display: inline-block;">📣 פידבקים ומשובים לאתר</button>
+<button class="tab-btn owner-only" id="btn-approvals" onclick="switchTab('approvals')" style="display: none;"> 📬 הצעות לפתרונות <span class="count-badge" id="approvals-badge" style="display:none;">0</span>
+</button>  <button class="tab-btn owner-only" id="tab-feedback" onclick="switchTab('feedback')" style="display: inline-block;">📣 פידבקים ומשובים לאתר</button>
 </nav>
 
 <main>
@@ -13991,40 +13991,43 @@ function renderCardsPaged(data) {
   }
 
   function updateOwnerUI() {
-    // הצג/הסתר לשוניות מנהל
-    document.querySelectorAll('.owner-only').forEach(el => {
-      el.style.display = isOwner ? 'inline-block' : 'none';
-    });
-    // הצג/הסתר כפתורי עריכה בכרטיסיות
-    document.querySelectorAll('.card-actions').forEach(el => {
-      el.style.display = isOwner ? 'flex' : 'none';
-    });
-    // הצג/הסתר כפתור "הצעת הגדרה"
-    const suggestBtn = document.getElementById('suggest-btn');
-    if (isOwner) {
-    // מציג את כפתור ההצעות ששלחת
-    const btn = document.getElementById('tab-approvals');
-    if (btn) btn.style.display = 'inline-block';
-    
-    // טוען את הרשימה מהשרת
-    renderApprovalsList();
+  const displayStyle = isOwner ? 'inline-block' : 'none';
+  const inverseStyle = isOwner ? 'none' : 'inline-block';
+
+  // 1. טיפול גורף בכל מה ששייך רק למנהל (חוסך המון שורות קוד)
+  document.querySelectorAll('.owner-only').forEach(el => {
+    el.style.display = displayStyle;
+  });
+
+  // 2. הצג/הסתר כפתורי עריכה בתוך הכרטיסיות
+  document.querySelectorAll('.card-actions').forEach(el => {
+    el.style.display = isOwner ? 'flex' : 'none';
+  });
+
+  // 3. אלמנטים שמוצגים *רק* למשתמש רגיל (אורח) ומסתירים למנהל
+  const guestElements = ['suggest-btn', 'feedback-btn'];
+  guestElements.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = inverseStyle;
+  });
+
+  // 4. לוגיקה מיוחדת לטאב ההצעות (Approvals)
+  if (isOwner) {
+    // טעינת הנתונים מהשרת ברגע שהמנהל מזדהה
+    if (typeof renderApprovalsList === 'function') {
+      renderApprovalsList();
+    }
   }
-    if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
-    const feedbackBtn = document.getElementById('feedback-btn');
-    if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
-    // הצג טאב פידבק למנהל
-    const tabFeedback = document.getElementById('tab-feedback');
-    if (tabFeedback) tabFeedback.style.display = isOwner ? 'inline-block' : 'none';
-    const tabExport = document.getElementById('tab-export');
-    if (tabExport) tabExport.style.display = isOwner ? 'inline-block' : 'none';
-    const tabApprovals = document.getElementById('tab-approvals');
-    if (tabApprovals) tabApprovals.style.display = isOwner ? 'inline-block' : 'none';
-      // הצג/הסתר כפתור התנתקות
-      const logoutBtn = document.getElementById('logoutBtn');
-      if (logoutBtn) logoutBtn.style.display = isOwner ? 'inline-block' : 'none';
-    // עדכן כפילויות
+
+  // 5. כפתור התנתקות
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) logoutBtn.style.display = displayStyle;
+
+  // 6. עדכון כפתורי פילטר או רשימות אם צריך
+  if (typeof updateFilterButtons === 'function') {
     updateFilterButtons();
   }
+}
 // ──────────────────────────────────────────────
 // LOGOUT FUNCTION
 // ──────────────────────────────────────────────
