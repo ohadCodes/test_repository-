@@ -14459,19 +14459,23 @@ function logout() {
   switchTab('search');
 
   // Hide splash after short delay (entries already loaded from BUNDLED)
+  // הסתרת מסך הפתיחה
   setTimeout(() => {
     const splash = document.getElementById('splash');
     if (splash) {
       splash.classList.add('hide');
-      setTimeout(() => splash.remove(), 500);
     }
   }, 800);
 
+  // רישום ה-Service Worker
   if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
-  });
-}
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
+    });
+  }
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>
