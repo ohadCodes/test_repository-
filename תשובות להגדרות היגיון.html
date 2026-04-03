@@ -14541,29 +14541,70 @@ async function renderApprovalsList() {
 }
 
 // פונקציות עזר לאישור ומחיקה (מתקשרות עם ה-Script בשרת)
+// פונקציות עזר לאישור ומחיקה (מתקשרות עם ה-Script בשרת)
 async function approveItem(id) {
-  if (!confirm('לאשר ולהוסיף למאגר?')) return;
+  if (!confirm('האם לאשר ולהוסיף את ההגדרה למאגר הראשי?')) return;
   try {
     const resp = await fetch(SCRIPT_URL + '?action=approveFeedback&id=' + id);
     if (resp.ok) {
-      showToast('התווסף בהצלחה', 'success');
-      renderApprovalsList();
-      syncWithDrive(); // סנכרון המאגר המרכזי
+      showToast('ההגדרה אושרה ונוספה!', 'success');
+      renderApprovalsList(); // רענון הרשימה בטאב
+      syncWithDrive();      // סנכרון המאגר הראשי המעודכן
+    } else {
+      showToast('שגיאה באישור ההצעה', 'error');
     }
-  } catch (e) { showToast('שגיאה באישור', 'error'); }
+  } catch (e) {
+    showToast('שגיאה בתקשורת עם השרת', 'error');
+  }
 }
 
 async function deleteItem(id) {
-  if (!confirm('למחוק את ההצעה?')) return;
+  if (!confirm('למחוק את ההצעה לצמיתות?')) return;
   try {
     const resp = await fetch(SCRIPT_URL + '?action=deleteFeedback&id=' + id);
     if (resp.ok) {
       showToast('ההצעה נמחקה', 'success');
       renderApprovalsList();
+    } else {
+      showToast('שגיאה במחיקת ההצעה', 'error');
     }
-  } catch (e) { showToast('שגיאה במחיקה', 'error'); }
-}
+  } catch (e) {
+    showToast('שגיאה בתקשורת עם השרת', 'error');
   }
+}
+
+function exportUpdatedHTML() {
+  const htmlContent = document.documentElement.outerHTML;
+  const entriesJson = JSON.stringify(entries, null, 0);
+  const updated = htmlContent.replace(
+    /const BUNDLED_ENTRIES = \[.*?\];/s,
+    'const BUNDLED_ENTRIES = ' + entriesJson + ';'
+  );
+  const blob = new Blob([updated], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'updated_riddles.html';
+  a.click();
+}
+
+// --- לוגיקת אתחול בטעינה ---
+
+// 1. הגדרת מצב אורח כברירת מחדל (מונע קפיצת חלון גוגל)
+isOwner = false;
+updateOwnerUI();
+
+// 2. מעבר לטאב חיפוש כברירת מחדל
+switchTab('search');
+
+// 3. הסרת מסך הפתיחה
+setTimeout(() => {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.style.opacity = '0';
+    setTimeout(() => splash.remove(), 500);
+  }
+}, 1000);
+
 </script>
 </body>
 </html>
