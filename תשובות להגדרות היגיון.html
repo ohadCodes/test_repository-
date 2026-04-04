@@ -14485,9 +14485,43 @@ function logout() {
     a.download = 'updated_riddles.html';
     a.click();
   }
-  switchTab('search');
+  function prepareMerge(index, encodedIds) {
+  const inputEl = document.getElementById(`input-group-${index}`);
+  const groupName = inputEl.value.trim();
+  
+  if (!groupName) {
+    showToast('חובה להזין שם לקבוצה כדי למזג', 'error');
+    inputEl.focus();
+    return;
+  }
 
+  const ids = JSON.parse(decodeURIComponent(encodedIds));
+  if (confirm(`האם למזג את כל ההגדרות לקבוצה בשם "${groupName}"?`)) {
+    executeGroupMerge(ids, groupName);
+  }
+}
+
+function executeGroupMerge(ids, newName) {
+  const baseEntry = entries.find(e => e.id === ids[0]);
+  const mergedEntry = {
+    ...baseEntry,
+    id: 'm-' + Date.now(),
+    definition: newName
+  };
+
+  entries = entries.filter(e => !ids.includes(e.id));
+  entries.push(mergedEntry);
+
+  showToast('הקבוצה מוזגה בהצלחה!', 'success');
+  renderCardsPaged(""); 
+  if (isOwner) syncWithDrive();
+  switchTab('search');
+}
+  switchTab('search');
+isOwner = false;
+updateOwnerUI();
   // Hide splash after short delay (entries already loaded from BUNDLED)
+  // הסתרת מסך הפתיחה
   setTimeout(() => {
     const splash = document.getElementById('splash');
     if (splash) {
@@ -14496,11 +14530,12 @@ function logout() {
     }
   }, 800);
 
+  // רישום Service Worker (אופציונלי)
   if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
-  });
-}
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
+    });
+  }
 </script>
 </body>
 </html>
