@@ -14461,22 +14461,24 @@ function logout() {
     a.download = 'updated_riddles.html';
     a.click();
   }
+
+  // --- לוגיקת אתחול (מצב אורח כברירת מחדל) ---
+
+  // 1. קביעת מצב אורח ועדכון הממשק
+  isOwner = false;
+  updateOwnerUI();
+
+  // 2. מעבר לטאב החיפוש
   switchTab('search');
 
-  // Hide splash after short delay (entries already loaded from BUNDLED)
+  // 3. הסרת מסך הפתיחה (Splash)
   setTimeout(() => {
     const splash = document.getElementById('splash');
     if (splash) {
-      splash.classList.add('hide');
+      splash.style.opacity = '0';
       setTimeout(() => splash.remove(), 500);
     }
-  }, 800);
-
-  if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
-  });
-}
+  }, 1000);
 </script>
 </body>
 </html>
