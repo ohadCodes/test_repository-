@@ -13898,7 +13898,6 @@ function renderCardsPaged(data) {
         await syncWithDrive();
       }
     });
-    client.requestAccessToken();
   }
 
   async function driveRequest(url, options = {}) {
@@ -14461,24 +14460,22 @@ function logout() {
     a.download = 'updated_riddles.html';
     a.click();
   }
-
-  // --- לוגיקת אתחול (מצב אורח כברירת מחדל) ---
-
-  // 1. קביעת מצב אורח ועדכון הממשק
-  isOwner = false;
-  updateOwnerUI();
-
-  // 2. מעבר לטאב החיפוש
   switchTab('search');
 
-  // 3. הסרת מסך הפתיחה (Splash)
+  // Hide splash after short delay (entries already loaded from BUNDLED)
   setTimeout(() => {
     const splash = document.getElementById('splash');
     if (splash) {
-      splash.style.opacity = '0';
+      splash.classList.add('hide');
       setTimeout(() => splash.remove(), 500);
     }
   }, 1000);
+
+  if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
+  });
+}
 </script>
 </body>
 </html>
