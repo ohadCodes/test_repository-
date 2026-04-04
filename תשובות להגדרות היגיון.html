@@ -13826,6 +13826,11 @@ function renderCardsPaged(data) {
   const FORMS_URL = 'https://forms.gle/sGWX4LKuUzSFeSjd6';
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec';
 
+  let gAccessToken = localStorage.getItem('g_access_token') || null;
+  let gUserEmail = localStorage.getItem('g_user_email') || null;
+  let gEntriesFileId = localStorage.getItem('g_entries_file_id') || null;
+  let isSyncing = false;
+
   async function apiGetJson(query, timeoutMs = 12000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
