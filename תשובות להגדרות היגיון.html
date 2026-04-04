@@ -13898,6 +13898,7 @@ function renderCardsPaged(data) {
         await syncWithDrive();
       }
     });
+    isOwner = false;
   }
 
   async function driveRequest(url, options = {}) {
@@ -14469,7 +14470,7 @@ function logout() {
       splash.classList.add('hide');
       setTimeout(() => splash.remove(), 500);
     }
-  }, 1000);
+  }, 800);
 
   if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
