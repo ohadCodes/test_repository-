@@ -51,16 +51,16 @@
       <rect x="13" y="29" width="16" height="2" rx="1" fill="rgba(61,142,245,0.2)"></rect>
     </svg>
     <span class="app-title">תשובות להגדרות היגיון</span>
-  </div>
   <div class="header-top">
-      <div style="display:flex;gap:6px;align-items:center;">
+    <div style="display:flex;gap:6px;align-items:center;">
         <button id="syncBtn" onclick="handleSyncClick()" class="sync-btn connected" title="מחובר כמנהל — לחץ לסנכרון">
           <span id="syncIcon">👑</span>
         </button>
+        <button id="pushCloudBtn" onclick="pushToCloud()" class="sync-btn owner-only" title="העלה את כל ההגדרות המקומיות לענן">⬆️ העלה</button>
         <button id="logoutBtn" onclick="logout()" class="sync-btn" style="display: inline-block; font-size: 0.85rem; padding: 6px 10px;" title="התנתק מהחשבון">🚪</button>
-      </div>
-      <span class="stats-badge" id="statsText" style="display: inline-block;">518 הגדרות</span>
-  </div>
+    </div>
+    <span class="stats-badge" id="statsText" style="display: inline-block;">518 הגדרות</span>
+</div>
   <div class="search-wrap" id="searchWrap" style="display: none;">
     <select class="search-field-select" id="searchField" onchange="onSearchFieldChange()">
       <option value="definition">הגדרה</option>
