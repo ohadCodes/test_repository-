@@ -1,4 +1,6 @@
   // הגדרת משתנים גלובליים בראש הסקריפט למניעת שגיאות initialization
+  let currentUser = null;
+  let isAdmin = false; // ברירת מחדל: לא מנהל
   let allEntries = [];
   let gAccessToken = null;
   let gUserEmail = null;
