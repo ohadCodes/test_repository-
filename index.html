@@ -13112,7 +13112,35 @@ function updateFilterButtons() {
     // נחזיר מערך ריק כברירת מחדל כדי שהאתר לא יקרוס
     return [];
 }
-  
+  function switchTab(tabId) {
+    // 1. הסרת מחלקת active מכל כפתורי הטאבים
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // 2. הסרת מחלקת active מכל התצוגות (views)
+    document.querySelectorAll('.view').forEach(view => {
+        view.classList.remove('active');
+    });
+
+    // 3. הוספת active לכפתור שנלחץ
+    // אנחנו מחפשים כפתור שה-onclick שלו מכיל את ה-tabId שקיבלנו
+    const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+
+    // 4. הצגת התצוגה המתאימה (למשל view-search או view-add)
+    const activeView = document.getElementById(`view-${tabId}`);
+    if (activeView) {
+        activeView.classList.add('active');
+    }
+
+    // לוגיקה נוספת לפי סוג הטאב
+    if (tabId === 'search') {
+        setTimeout(() => document.getElementById('searchInput')?.focus(), 100);
+    }
+}
   function saveData(data) {
     localStorage.setItem(getStorageKey(), JSON.stringify(data));
     updateStats();
