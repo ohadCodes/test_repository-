@@ -14196,7 +14196,7 @@ function logout() {
       else showToast('שגיאה', 'error');
     } catch(e) { showToast('שגיאה', 'error'); }
   }
-
+  }
   if (gAccessToken && gUserEmail === OWNER_EMAIL) {
     isOwner = true;
     updateSyncBtn('connected');
