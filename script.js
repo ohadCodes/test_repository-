@@ -820,13 +820,11 @@ async function pushToCloud() {
     if (!isOwner) return;
     updateSyncBtn('syncing');
     try {
-        var payload = JSON.stringify(entries);
-        var res = await fetch(APPS_SCRIPT_URL + '?action=updateEntries', {
-            method: 'POST',
-            body: payload,
-            headers: { 'Content-Type': 'application/json' }
-        });
-        var data = await res.json();
+        // המרת מערך ההגדרות למחרוזת מקודדת
+        const dataEncoded = encodeURIComponent(JSON.stringify(entries));
+        const url = APPS_SCRIPT_URL + '?action=updateEntries&data=' + dataEncoded;
+        const res = await fetch(url);
+        const data = await res.json();
         if (data.ok) {
             showToast('✅ הנתונים הועלו לענן', 'success');
             updateSyncBtn('connected');
@@ -835,7 +833,7 @@ async function pushToCloud() {
         }
     } catch(e) {
         updateSyncBtn('error');
-        showToast('שגיאה בהעלאה', 'error');
+        showToast('שגיאה בהעלאה: ' + e.message, 'error');
     }
 }
 
