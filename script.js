@@ -928,7 +928,7 @@ async function renderApprovalsList() {
 async function approveSuggestion(id) {
     try {
         // 1. מחיקה מהשרת
-        await fetch(`${APPS_SCRIPT_URL}?action=deleteSuggestion&id=${id}`);
+        await fetch(APPS_SCRIPT_URL + '?action=deleteSuggestion&id=' + id);
         // 2. מציאת ההצעה בזיכרון
         const suggestions = window.currentSuggestions || [];
         const suggestion = suggestions.find(s => s.id === id);
