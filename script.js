@@ -843,10 +843,9 @@ function logout() {
         } catch(e) {}
     }
     
-    // 5. רענון הנתונים למצב אורח - טעינה מחדש של entries.json
+    // 5. רענון הנתונים למצב אורח
     showToast('התנתקת, טוען מחדש נתוני אורח...', '');
     
-    // טעינה מחדש של הנתונים (ללא נתוני מנהל)
     fetch('entries.json')
         .then(response => response.json())
         .then(data => {
@@ -857,9 +856,10 @@ function logout() {
         })
         .catch(err => {
             console.error('שגיאה בטעינה מחדש:', err);
-            location.reload(); // רענון מלא כמוצא אחרון
-        };
-}
+            location.reload();
+        });
+}  
+
 function handleSyncClick() {
     if (!gAccessToken) signInGoogle();
     else syncWithDrive();
