@@ -1600,6 +1600,9 @@ window.logout = function() {
 // ==============================================
 // טעינת הגדרות מקובץ JSON - הפונקציה החשובה!
 // ==============================================
+// ==============================================
+// טעינת הגדרות מקובץ JSON - פונקציה ראשית
+// ==============================================
 async function loadEntriesFromJSON() {
     try {
         const response = await fetch('entries.json');
@@ -1608,9 +1611,13 @@ async function loadEntriesFromJSON() {
         }
         const data = await response.json();
         
-        // עדכון המערך הגלובלי
+        // עדכון המערכים הגלובליים
+        window.BUNDLED_ENTRIES = data;
         window.allEntries = data;
         window.entries = data;
+        
+        // עדכון ה-LocalStorage עם הנתונים החדשים
+        localStorage.setItem('tashbetz_entries', JSON.stringify(data));
         
         console.log(`✅ נטענו ${data.length} הגדרות מ-entries.json`);
         
@@ -1620,7 +1627,14 @@ async function loadEntriesFromJSON() {
             statsBadge.textContent = data.length + ' הגדרות';
         }
         
-        // רינדור מחדש של הכרטיסים
+        // הסתרת מסך הספלאש
+        const splash = document.getElementById('splash');
+        if (splash) {
+            splash.classList.add('hide');
+            setTimeout(() => splash.remove(), 500);
+        }
+        
+        // רינדור הכרטיסים
         if (typeof renderCardsPaged === 'function') {
             renderCardsPaged('');
         }
@@ -1628,6 +1642,19 @@ async function loadEntriesFromJSON() {
         return data;
     } catch (error) {
         console.error('❌ שגיאה בטעינת הגדרות:', error);
+        
+        // ניסיון לטעון מ-LocalStorage כגיבוי
+        const savedData = localStorage.getItem('tashbetz_entries');
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            window.entries = parsed;
+            console.log(`⚠️ נטענו ${parsed.length} הגדרות מ-LocalStorage (גיבוי)`);
+            if (typeof renderCardsPaged === 'function') {
+                renderCardsPaged('');
+            }
+            return parsed;
+        }
+        
         const cardsList = document.getElementById('cardsList');
         if (cardsList) {
             cardsList.innerHTML = `
@@ -1642,18 +1669,9 @@ async function loadEntriesFromJSON() {
     }
 }
 
-// הפעלת טעינת ההגדרות כשהדף נטען
-document.addEventListener('DOMContentLoaded', function() {
-    loadEntriesFromJSON();
-});
-
-// אם יש כבר קוד ב-window.onload, נוסיף אליו
-if (typeof window.onload === 'function') {
-    const oldOnload = window.onload;
-    window.onload = function() {
-        oldOnload();
-        loadEntriesFromJSON();
-    };
+// הפעלה אוטומטית כשהדף נטען
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadEntriesFromJSON);
 } else {
-    window.onload = loadEntriesFromJSON;
+    loadEntriesFromJSON();
 }
