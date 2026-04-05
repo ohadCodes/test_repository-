@@ -14474,48 +14474,59 @@ function logout() {
     navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
   });
 }
-</script>
+<script>
+// משתנה גלובלי להגדרות
+window.BUNDLED_ENTRIES = [];
 
-    <script>
-    // טעינת הגדרות מקובץ JSON חיצוני
-    async function loadEntriesFromFile() {
-        try {
-            const response = await fetch('entries.json');
-            if (!response.ok) throw new Error('לא ניתן לטעון את קובץ ההגדרות');
-            const data = await response.json();
-            window.BUNDLED_ENTRIES = data;
-            console.log(`נטענו ${data.length} הגדרות מ-entries.json`);
+// טעינת הגדרות מקובץ JSON חיצוני
+async function loadEntriesFromFile() {
+    try {
+        const response = await fetch('entries.json');
+        if (!response.ok) throw new Error('לא ניתן לטעון את קובץ ההגדרות');
+        const data = await response.json();
+        window.BUNDLED_ENTRIES = data;
+        console.log(`נטענו ${data.length} הגדרות מ-entries.json`);
+        
+        // אתחול המערכת לאחר טעינת הנתונים
+        if (typeof window.initAfterLoad === 'function') {
+            window.initAfterLoad();
+        } else {
+            // קריאה לפונקציות הקיימות
             if (typeof renderCardsPaged === 'function') {
                 renderCardsPaged('');
             }
             if (typeof updateStats === 'function') {
                 updateStats();
             }
-            return data;
-        } catch (error) {
-            console.error('שגיאה בטעינת הגדרות:', error);
-            document.getElementById('cardsList').innerHTML = `
+        }
+        return data;
+    } catch (error) {
+        console.error('שגיאה בטעינת הגדרות:', error);
+        const cardsList = document.getElementById('cardsList');
+        if (cardsList) {
+            cardsList.innerHTML = `
                 <div class="empty-state">
                     <div class="icon">⚠️</div>
                     <h3>שגיאה בטעינת הגדרות</h3>
                     <p>לא ניתן לטעון את קובץ ההגדרות. ודא שהקובץ entries.json נמצא בתיקייה.</p>
                 </div>`;
-            return [];
-        }
-    }
-    
-    // החלפת פונקציית loadData
-    window.loadData = function() {
-        if (window.BUNDLED_ENTRIES && window.BUNDLED_ENTRIES.length) {
-            return window.BUNDLED_ENTRIES;
         }
         return [];
-    };
-    
-    // אתחול המערכת
-    document.addEventListener('DOMContentLoaded', function() {
-        loadEntriesFromFile();
-    });
-    </script>
+    }
+}
+
+// החלפת פונקציית loadData
+window.loadData = function() {
+    if (window.BUNDLED_ENTRIES && window.BUNDLED_ENTRIES.length) {
+        return window.BUNDLED_ENTRIES;
+    }
+    return [];
+};
+
+// אתחול המערכת
+document.addEventListener('DOMContentLoaded', function() {
+    loadEntriesFromFile();
+});
+</script>
 </body>
 </html>
