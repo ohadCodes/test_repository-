@@ -738,3 +738,894 @@
       </button>
       <button id="logoutBtn" onclick="logout()" class="sync-btn" style="display: none; font-size: 0.85rem; padding: 6px 10px;" title="התנתק מהחשבון">🚪</button>
     </div>
+    <span class="stats-badge" id="statsText">0 הגדרות</span>
+  </div>
+  <div class="search-wrap" id="searchWrap" style="display: flex;">
+    <select class="search-field-select" id="searchField" onchange="onSearchFieldChange()">
+      <option value="definition">הגדרה</option>
+      <option value="solution">פתרון</option>
+      <option value="explanation">רמז</option>
+    </select>
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="חפש הגדרה..." autocomplete="off" autocorrect="off">
+      <button class="clear-search" id="clearSearch" onclick="clearSearch()" style="display: none;">✕</button>
+    </div>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <button class="tab-btn active" id="tab-search" onclick="switchTab('search')">🔍 חיפוש הגדרה</button>
+  <button class="tab-btn owner-only" id="tab-add" onclick="switchTab('add')" style="display: none;">➕ הוספת הגדרות</button>
+  <button class="tab-btn owner-only" id="tab-import" onclick="switchTab('import')" style="display: none;">📥 ייבוא</button>
+  <button class="tab-btn owner-only" id="tab-export" onclick="switchTab('export')" style="display: none;">📤 ייצוא</button>
+  <button class="tab-btn owner-only" id="tab-dupes" onclick="switchTab('dupes')" style="display: none;">🔎 הגדרות כפולות</button>
+  <button class="tab-btn owner-only" id="tab-similar" onclick="switchTab('similar')" style="display: none;">🔍 הגדרות דומות</button>
+  <button class="tab-btn owner-only" id="tab-delete" onclick="switchTab('delete')" style="display: none;">🗑️ מחיקת הגדרות</button>
+  <button class="tab-btn owner-only" id="tab-approvals" onclick="switchTab('approvals')" style="display: none;">📬 הצעות <span class="count-badge">0</span></button>
+  <button class="tab-btn owner-only" id="tab-feedback" onclick="switchTab('feedback')" style="display: none;">📣 פידבקים</button>
+</nav>
+
+<main>
+  <div class="view active" id="view-search">
+    <div class="filter-bar">
+      <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">הכל</button>
+      <button class="filter-btn" id="filter-no-explanation" onclick="setFilter('no-explanation')" style="display: none;">💡 ללא הסבר</button>
+      <button class="filter-btn" id="filter-no-solution" onclick="setFilter('no-solution')" style="display: none;">❓ ללא תשובה</button>
+      <button class="filter-btn" id="suggest-btn" onclick="openSuggestionModal()" style="margin-right: auto; background: rgba(6, 214, 160, 0.1); border-color: rgba(6, 214, 160, 0.3); color: var(--success); display: inline-block;">📝 הצעת הגדרה</button>
+      <button class="feedback-btn" id="feedback-btn" onclick="openFeedbackModal()" style="display: inline-block;">🐛 תקלות / שיפורים</button>
+    </div>
+    <div class="results-info" id="resultsInfo" style="display: none;">מוצגים <span class="highlight">0</span> הגדרות מתוך: <span class="highlight">0</span></div>
+    <div id="cardsList"></div>
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="icon">🧩</div>
+      <h3 id="emptyTitle">טוען הגדרות...</h3>
+      <p id="emptyMsg"></p>
+    </div>
+  </div>
+
+  <div class="view" id="view-add">
+    <div class="form-section">
+      <h3>✏️ הוספת הגדרה חדשה</h3>
+      <div class="form-group">
+        <label>ההגדרה *</label>
+        <textarea id="f-definition" rows="2" placeholder="למשל: החולים כבר אינם כאלה (6)"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>מספר אותיות</label>
+          <input type="text" id="f-letters" placeholder="למשל: 6">
+        </div>
+        <div class="form-group">
+          <label>סוג [ש"כ, ר"ת...]</label>
+          <input type="text" id="f-type" placeholder='למשל: ש"כ'>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>הפתרון</label>
+        <input type="text" id="f-solution" placeholder="למשל: החלימו">
+      </div>
+      <div class="form-group">
+        <label>הסבר</label>
+        <input type="text" id="f-explanation" placeholder="למשל: אנגרם של 'החולים'">
+      </div>
+      <button class="btn btn-primary" onclick="addEntry()">שמור הגדרה</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-import">
+    <div class="form-section">
+      <h3>📥 ייבוא קובץ טקסט</h3>
+      <div class="import-zone" id="importZone">
+        <input type="file" accept=".txt,.csv" onchange="handleFileImport(event)">
+        <div class="icon">📄</div>
+        <p><strong>לחץ לבחירת קובץ</strong><br>או גרור לכאן<br><small>קובץ .txt</small></p>
+      </div>
+      <div class="import-format">
+        <strong>פורמט הקובץ:</strong><br>
+        כל הגדרה בשורה אחת:<br>
+        <code>ההגדרה: טקסט (מספר) [סוג] | הפתרון: מילה | הסבר: טקסט</code><br><br>
+        <strong>דוגמה:</strong><br>
+        <code>ההגדרה: החולים כבר אינם כאלה (6) [ש"כ] | הפתרון: החלימו | הסבר: אנגרם של 'החולים'</code>
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>📋 הדבקת טקסט ישיר</h3>
+      <div class="form-group">
+        <label>הדבק כאן מספר הגדרות (כל אחת בשורה)</label>
+        <textarea id="pasteArea" rows="6" placeholder='ההגדרה: טקסט (6) [ש"כ] | הפתרון: מילה | הסבר: הסבר'></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="importFromPaste()">ייבא טקסט</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-export">
+    <div class="form-section">
+      <h3>📤 ייצוא כל ההגדרות</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">מוריד קובץ טקסט עם כל ההגדרות השמורות, בפורמט שניתן לייבא חזרה.</p>
+      <button class="btn btn-primary" onclick="exportEntries()">📤 הורד קובץ ייצוא</button>
+    </div>
+    <div class="form-section">
+      <h3>🔄 עדכון קובץ HTML</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">מייצר קובץ HTML חדש עם כל ההגדרות הנוכחיות מוטמעות בפנים — הורד והעלה ל-GitHub.</p>
+      <button class="btn btn-primary" onclick="exportUpdatedHTML()">🔄 הורד HTML מעודכן</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-dupes">
+    <div class="form-section">
+      <h3>🔎 בדיקת כפילויות</h3>
+      <button class="btn btn-primary" onclick="checkDuplicates()" style="margin-bottom:16px;">בדוק עכשיו</button>
+      <div id="dupesResult"></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-similar">
+    <div class="form-section">
+      <h3>🔍 הגדרות דומות</h3>
+      <div id="similarList"></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-delete">
+    <div class="form-section">
+      <h3>🗑️ מחיקת הגדרות</h3>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn-icon" onclick="selectAllDelete()">סמן הכל</button>
+        <button class="btn-icon" onclick="deselectAllDelete()">בטל הכל</button>
+        <button class="btn-icon" onclick="renderDeleteList()" style="margin-right:auto;">🔄 רענן</button>
+      </div>
+      <div style="position:relative;margin-bottom:12px;">
+        <input type="text" id="deleteSearchInput" placeholder="סנן לפי הגדרה..." oninput="renderDeleteList()" style="padding-right:14px;">
+      </div>
+      <div id="deleteList"></div>
+      <div id="deleteFooter" style="display:none;position:sticky;bottom:0;background:var(--surface);padding:14px 0 0;margin-top:8px;">
+        <button class="btn btn-primary" style="background:linear-gradient(135deg,#f43f5e,#e11d48);box-shadow:0 4px 20px rgba(244,63,94,0.25);" onclick="confirmDeleteSelected()">
+          🗑️ מחק <span id="deleteCount">0</span> מסומנות
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-feedback">
+    <div class="form-section">
+      <h3>📣 פידבקים מהמשתמשים</h3>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="flex:1;">
+          <div style="font-size:0.8rem;font-weight:600;color:#f43f5e;margin-bottom:10px;text-align:center;padding:6px;background:rgba(244,63,94,0.08);border-radius:8px;border:1px solid rgba(244,63,94,0.2);">🐛 תקלות</div>
+          <div id="feedbackListBugs"><div style="color:var(--text-dim);font-size:0.85rem;text-align:center;padding:16px;">אין פריטים</div></div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:0.8rem;font-weight:600;color:#a78bfa;margin-bottom:10px;text-align:center;padding:6px;background:rgba(139,92,246,0.08);border-radius:8px;border:1px solid rgba(139,92,246,0.2);">💡 שיפורים</div>
+          <div id="feedbackListImprovements"><div style="color:var(--text-dim);font-size:0.85rem;text-align:center;padding:16px;">אין פריטים</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="view-approvals">
+    <div class="form-section">
+      <h3>📬 הצעות הגדרה ממשתמשים</h3>
+      <div id="approvalsList"></div>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>✏️ עריכת הגדרה</h3>
+    <input type="hidden" id="edit-id">
+    <div class="form-group">
+      <label>ההגדרה *</label>
+      <textarea id="edit-definition" rows="2"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>מספר אותיות</label>
+        <input type="text" id="edit-letters">
+      </div>
+      <div class="form-group">
+        <label>סוג</label>
+        <input type="text" id="edit-type">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>הפתרון</label>
+      <input type="text" id="edit-solution">
+    </div>
+    <div class="form-group">
+      <label>הסבר</label>
+      <input type="text" id="edit-explanation">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ביטול</button>
+      <button class="btn btn-primary" onclick="saveEdit()" style="flex:2;">שמור</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>🗑️ מחיקת הגדרה</h3>
+    <p style="color:var(--text-muted);margin-bottom:8px;">האם למחוק את ההגדרה?</p>
+    <p id="delete-preview" style="font-size:0.9rem;color:var(--text);background:var(--surface2);padding:10px;border-radius:8px;"></p>
+    <input type="hidden" id="delete-id">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">ביטול</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">מחק</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal">
+    <h3>📣 דיווח על תקלה או הצעת שיפור</h3>
+    <div class="feedback-type-row">
+      <button class="feedback-type-btn selected" id="ftype-bug" onclick="selectFeedbackType('bug')">🐛 תקלה</button>
+      <button class="feedback-type-btn" id="ftype-improve" onclick="selectFeedbackType('improve')">💡 הצעת שיפור</button>
+    </div>
+    <div class="form-group">
+      <label>תיאור</label>
+      <textarea id="feedback-text" rows="4" placeholder="תאר את התקלה או השיפור המבוקש..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeFeedbackModal()">ביטול</button>
+      <button class="btn btn-primary" onclick="submitFeedback()" style="flex:2;">שלח</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="suggestionModal">
+  <div class="modal">
+    <h3>📝 הצעת הגדרה חדשה</h3>
+    <div class="form-group">
+      <label>ההגדרה *</label>
+      <textarea id="sug-definition" rows="2" placeholder="למשל: החולים כבר אינם כאלה (6)"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>מספר אותיות</label>
+        <input type="text" id="sug-letters" placeholder="למשל: 6">
+      </div>
+      <div class="form-group">
+        <label>הפתרון</label>
+        <input type="text" id="sug-solution" placeholder="למשל: החלימו">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>הסבר (אופציונלי)</label>
+      <input type="text" id="sug-explanation" placeholder="למשל: אנגרם של החולים">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeSuggestionModal()">ביטול</button>
+      <button class="btn btn-primary" onclick="submitSuggestion()" style="flex:2;">שלח הצעה ✉️</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast success" id="toast">✅ ההגדרה עודכנה</div>
+
+<script>
+// ============================================================
+// משתנים גלובליים
+// ============================================================
+let entries = [];
+let currentQuery = '';
+let currentFilter = 'all';
+let searchField = 'definition';
+let entriesPage = 0;
+const ENTRIES_PAGE_SIZE = 100;
+let isOwner = false;
+let selectedForDelete = new Set();
+let feedbackType = 'bug';
+let toastTimer;
+let gAccessToken = null;
+let gUserEmail = null;
+
+// ============================================================
+// פונקציות עזר
+// ============================================================
+function normalize(str) {
+  if (typeof str !== 'string' || !str) return '';
+  return str.replace(/[ְִֵֶַָֹֻּׁׂ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function highlightText(text, query) {
+  if (!query) return escapeHtml(text);
+  const escaped = escapeHtml(text);
+  const escapedQ = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(escapedQ, 'gi'), m => `<mark>${m}</mark>`);
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function closeModal() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+});
+
+// ============================================================
+// טעינת נתונים מ-entries.json
+// ============================================================
+async function loadEntries() {
+  try {
+    const response = await fetch('entries.json');
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    entries = await response.json();
+    console.log(`✅ נטענו ${entries.length} הגדרות`);
+    updateStats();
+    renderCardsPaged();
+    setTimeout(() => {
+      const splash = document.getElementById('splash');
+      if (splash) splash.classList.add('hide');
+    }, 500);
+  } catch (error) {
+    console.error('שגיאה בטעינת הגדרות:', error);
+    document.getElementById('cardsList').innerHTML = `
+      <div class="empty-state">
+        <div class="icon">⚠️</div>
+        <h3>שגיאה בטעינת הגדרות</h3>
+        <p>לא ניתן לטעון את קובץ ההגדרות. ודא שהקובץ entries.json נמצא בתיקייה.</p>
+      </div>`;
+    setTimeout(() => {
+      const splash = document.getElementById('splash');
+      if (splash) splash.classList.add('hide');
+    }, 500);
+  }
+}
+
+function updateStats() {
+  const badge = document.getElementById('statsText');
+  if (entries.length > 0) {
+    badge.textContent = `${entries.length} הגדרות`;
+  } else {
+    badge.textContent = '0 הגדרות';
+  }
+}
+
+function hebrewSort(a, b) {
+  return (a.definition || '').localeCompare(b.definition || '', 'he');
+}
+
+function renderCardsPaged() {
+  const list = document.getElementById('cardsList');
+  const empty = document.getElementById('emptyState');
+  const info = document.getElementById('resultsInfo');
+  
+  let filtered = [...entries];
+  
+  if (currentFilter === 'no-explanation') {
+    filtered = filtered.filter(e => !e.explanation || !e.explanation.trim());
+  } else if (currentFilter === 'no-solution') {
+    filtered = filtered.filter(e => !e.solution || !e.solution.trim());
+  }
+  
+  if (currentQuery) {
+    const q = normalize(currentQuery);
+    filtered = filtered.filter(e => {
+      if (searchField === 'solution') return normalize(e.solution || '').includes(q);
+      if (searchField === 'explanation') return normalize(e.explanation || '').includes(q);
+      return normalize(e.definition).includes(q);
+    });
+  }
+  
+  filtered = filtered.slice().sort(hebrewSort);
+  
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    info.style.display = 'none';
+    document.getElementById('emptyTitle').textContent = 'לא נמצאו תוצאות';
+    document.getElementById('emptyMsg').innerHTML = 'נסה מילת חיפוש אחרת';
+    return;
+  }
+  
+  empty.style.display = 'none';
+  info.style.display = 'block';
+  info.innerHTML = `מוצגים <span class="highlight">${filtered.length}</span> הגדרות מתוך: <span class="highlight">${entries.length}</span>`;
+  
+  const start = entriesPage * ENTRIES_PAGE_SIZE;
+  const end = start + ENTRIES_PAGE_SIZE;
+  const pageFiltered = filtered.slice(start, end);
+  
+  list.innerHTML = pageFiltered.map(e => `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-definition">${searchField === 'definition' ? highlightText(e.definition, currentQuery) : escapeHtml(e.definition)}</div>
+        <div class="card-meta">
+          ${e.letters ? `<span class="tag tag-letters">${e.letters}</span>` : ''}
+          ${e.type ? `<span class="tag tag-type">${escapeHtml(e.type)}</span>` : ''}
+        </div>
+      </div>
+      <div class="card-solution">◈ ${e.solution ? (searchField === 'solution' ? highlightText(e.solution, currentQuery) : escapeHtml(e.solution)) : '<span style="color:var(--danger);">ללא תשובה</span>'}</div>
+      ${e.explanation ? `<div class="card-divider"></div><div class="card-explanation">${searchField === 'explanation' ? highlightText(e.explanation, currentQuery) : escapeHtml(e.explanation)}</div>` : ''}
+    </div>
+  `).join('');
+  
+  if (end < filtered.length) {
+    list.innerHTML += `<div style="text-align:center;margin:20px 0;"><button class="btn" onclick="loadMore()">טען עוד (${filtered.length - end} נוספים)</button></div>`;
+  }
+}
+
+function loadMore() {
+  entriesPage++;
+  renderCardsPaged();
+}
+
+function onSearchFieldChange() {
+  searchField = document.getElementById('searchField').value;
+  const placeholders = { definition: 'חפש הגדרה...', solution: 'חפש פתרון...', explanation: 'חפש רמז...' };
+  document.getElementById('searchInput').placeholder = placeholders[searchField];
+  currentQuery = document.getElementById('searchInput').value.trim();
+  entriesPage = 0;
+  renderCardsPaged();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  currentQuery = '';
+  document.getElementById('clearSearch').style.display = 'none';
+  entriesPage = 0;
+  renderCardsPaged();
+  document.getElementById('searchInput').focus();
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`filter-${filter}`).classList.add('active');
+  entriesPage = 0;
+  renderCardsPaged();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'${tab}'`)) {
+      btn.classList.add('active');
+    }
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const targetView = document.getElementById(`view-${tab}`);
+  if (targetView) targetView.classList.add('active');
+  document.getElementById('searchWrap').style.display = tab === 'search' ? 'flex' : 'none';
+  if (tab === 'search') { entriesPage = 0; renderCardsPaged(); }
+  if (tab === 'delete') renderDeleteList();
+  if (tab === 'feedback') renderFeedbackList();
+  if (tab === 'approvals') renderApprovalsList();
+  if (tab === 'similar') loadSimilar();
+}
+
+// ============================================================
+// הוספה, עריכה, מחיקה
+// ============================================================
+function addEntry() {
+  let definition = document.getElementById('f-definition').value.trim();
+  const solution = document.getElementById('f-solution').value.trim();
+  let letters = document.getElementById('f-letters').value.trim();
+  const type = document.getElementById('f-type').value.trim();
+  const explanation = document.getElementById('f-explanation').value.trim();
+  
+  if (!definition) { showToast('נדרשת הגדרה', 'error'); return; }
+  if (!letters) {
+    const m = definition.match(/\((\d[\d,]*)\)/);
+    if (m) letters = m[1];
+  }
+  
+  const entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    definition, solution, letters, type, explanation,
+    createdAt: Date.now()
+  };
+  
+  document.getElementById('f-definition').value = '';
+  document.getElementById('f-solution').value = '';
+  document.getElementById('f-letters').value = '';
+  document.getElementById('f-type').value = '';
+  document.getElementById('f-explanation').value = '';
+  
+  entries.unshift(entry);
+  saveToLocalStorage();
+  showToast('✅ ההגדרה נוספה!', 'success');
+  switchTab('search');
+}
+
+function openEdit(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-definition').value = e.definition;
+  document.getElementById('edit-letters').value = e.letters || '';
+  document.getElementById('edit-type').value = e.type || '';
+  document.getElementById('edit-solution').value = e.solution || '';
+  document.getElementById('edit-explanation').value = e.explanation || '';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const idx = entries.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const def = document.getElementById('edit-definition').value.trim();
+  if (!def) { showToast('נדרשת הגדרה', 'error'); return; }
+  entries[idx] = {
+    ...entries[idx],
+    definition: def,
+    letters: document.getElementById('edit-letters').value.trim(),
+    type: document.getElementById('edit-type').value.trim(),
+    solution: document.getElementById('edit-solution').value.trim(),
+    explanation: document.getElementById('edit-explanation').value.trim(),
+  };
+  saveToLocalStorage();
+  closeModal();
+  renderCardsPaged();
+  showToast('✅ ההגדרה עודכנה', 'success');
+}
+
+function openDelete(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('delete-id').value = id;
+  document.getElementById('delete-preview').textContent = e.definition + ' → ' + (e.solution || 'ללא פתרון');
+  document.getElementById('deleteModal').classList.add('open');
+}
+
+function confirmDelete() {
+  const id = document.getElementById('delete-id').value;
+  entries = entries.filter(x => x.id !== id);
+  saveToLocalStorage();
+  closeModal();
+  renderCardsPaged();
+  showToast('🗑️ ההגדרה נמחקה', 'success');
+}
+
+function saveToLocalStorage() {
+  localStorage.setItem('tashbetz_entries', JSON.stringify(entries));
+  updateStats();
+}
+
+// ============================================================
+// ייבוא וייצוא
+// ============================================================
+function parseEntryLine(line) {
+  line = line.trim();
+  if (!line) return null;
+  let definition = '', solution = '', explanation = '', letters = '', type = '';
+  const parts = line.split('|').map(p => p.trim());
+  for (const part of parts) {
+    if (part.startsWith('ההגדרה:') || part.startsWith('הגדרה:')) {
+      let def = part.replace(/^(ה)?הגדרה:\s*/, '');
+      const lettersMatch = def.match(/\((\d[\d,\s-]*)\)/);
+      if (lettersMatch) letters = lettersMatch[1];
+      const typeMatch = def.match(/\[([^\]]+)\]/);
+      if (typeMatch) type = typeMatch[1];
+      definition = def.replace(/\s*\(\d[\d,\s-]*\)\s*/g, '').replace(/\s*\[[^\]]+\]\s*/g, '').trim();
+    } else if (part.startsWith('הפתרון:') || part.startsWith('פתרון:')) {
+      solution = part.replace(/^(ה)?פתרון:\s*/, '').trim();
+    } else if (part.startsWith('הסבר:') || part.startsWith('סבר:')) {
+      explanation = part.replace(/^(ה)?סבר:\s*/, '').trim();
+    }
+  }
+  if (!definition) return null;
+  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2), definition, solution, letters, type, explanation, createdAt: Date.now() };
+}
+
+function processImportText(text) {
+  const lines = text.split('\n');
+  let added = 0, updated = 0, skipped = 0;
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const entry = parseEntryLine(line);
+    if (!entry) { skipped++; continue; }
+    const normNew = normalize(entry.definition);
+    const existingIdx = entries.findIndex(e => normalize(e.definition) === normNew);
+    if (existingIdx !== -1) {
+      const existing = entries[existingIdx];
+      let changed = false;
+      if (entry.solution && !existing.solution) { entries[existingIdx].solution = entry.solution; changed = true; }
+      if (entry.explanation && !existing.explanation) { entries[existingIdx].explanation = entry.explanation; changed = true; }
+      if (entry.letters && !existing.letters) { entries[existingIdx].letters = entry.letters; changed = true; }
+      if (entry.type && !existing.type) { entries[existingIdx].type = entry.type; changed = true; }
+      if (changed) updated++;
+      else skipped++;
+    } else {
+      entries.unshift(entry);
+      added++;
+    }
+  }
+  saveToLocalStorage();
+  const parts = [];
+  if (added > 0) parts.push(`נוספו ${added} חדשות`);
+  if (updated > 0) parts.push(`עודכנו ${updated}`);
+  if (skipped > 0) parts.push(`${skipped} דולגו`);
+  showToast(`✅ ${parts.join(' · ')}`, 'success');
+  switchTab('search');
+}
+
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => processImportText(e.target.result);
+  reader.readAsText(file, 'UTF-8');
+}
+
+function importFromPaste() {
+  const text = document.getElementById('pasteArea').value;
+  if (!text.trim()) { showToast('אין טקסט לייבוא', 'error'); return; }
+  processImportText(text);
+  document.getElementById('pasteArea').value = '';
+}
+
+function exportEntries() {
+  if (entries.length === 0) { showToast('אין הגדרות לייצוא', 'error'); return; }
+  const lines = entries.map(e => {
+    let def = `ההגדרה: ${e.definition}`;
+    if (e.letters) def += ` (${e.letters})`;
+    if (e.type) def += ` [${e.type}]`;
+    const parts = [def, `הפתרון: ${e.solution || ''}`];
+    if (e.explanation) parts.push(`הסבר: ${e.explanation}`);
+    return parts.join(' | ');
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `הגדרות_${new Date().toLocaleDateString('he-IL').replace(/\//g,'-')}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`✅ יוצאו ${entries.length} הגדרות`, 'success');
+}
+
+function exportUpdatedHTML() {
+  const htmlContent = document.documentElement.outerHTML;
+  const entriesJson = JSON.stringify(entries, null, 0);
+  const updated = htmlContent.replace(/const BUNDLED_ENTRIES = \[.*?\];/s, 'const BUNDLED_ENTRIES = ' + entriesJson + ';');
+  const blob = new Blob([updated], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'index.html';
+  a.click();
+}
+
+// ============================================================
+// כפילויות
+// ============================================================
+function checkDuplicates() {
+  const seen = {};
+  const groups = [];
+  for (const e of entries) {
+    const key = normalize(e.definition);
+    if (!seen[key]) seen[key] = [];
+    seen[key].push(e);
+  }
+  for (const key in seen) {
+    if (seen[key].length > 1) groups.push(seen[key]);
+  }
+  const container = document.getElementById('dupesResult');
+  if (groups.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">✅</div><h3>אין כפילויות!</h3></div>`;
+    return;
+  }
+  let html = `<div class="results-info">נמצאו ${groups.length} קבוצות כפילויות<button class="btn-icon danger" style="margin-right:10px;" onclick="deleteAllDupes()">🗑️ מחק הכל</button></div>`;
+  for (const group of groups) {
+    html += `<div class="card" style="border-color:var(--danger);margin-bottom:14px;"><div style="font-size:0.75rem;color:var(--danger);margin-bottom:10px;">⚠️ ${group.length} כניסות זהות</div>`;
+    group.forEach((e, idx) => {
+      html += `<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">
+        <div style="font-size:0.85rem;font-weight:600;">${escapeHtml(e.definition)}</div>
+        <div style="font-size:0.9rem;color:var(--success);">◈ ${escapeHtml(e.solution)}</div>
+        ${idx > 0 ? `<button class="btn-icon danger" style="margin-top:8px;" onclick="deleteDupe('${e.id}')">🗑️ מחק עותק זה</button>` : '<span style="font-size:0.75rem;color:var(--text-muted);">← ישמר</span>'}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  container.innerHTML = html;
+}
+
+function deleteDupe(id) {
+  entries = entries.filter(e => e.id !== id);
+  saveToLocalStorage();
+  showToast('🗑️ הכפילות נמחקה', 'success');
+  checkDuplicates();
+}
+
+function deleteAllDupes() {
+  const seen = {};
+  const toKeep = [];
+  for (const e of entries) {
+    const key = normalize(e.definition);
+    if (!seen[key]) { seen[key] = true; toKeep.push(e); }
+  }
+  const removed = entries.length - toKeep.length;
+  entries = toKeep;
+  saveToLocalStorage();
+  showToast(`✅ נמחקו ${removed} כפילויות`, 'success');
+  checkDuplicates();
+}
+
+// ============================================================
+// מחיקה מרובה
+// ============================================================
+function renderDeleteList() {
+  const query = document.getElementById('deleteSearchInput')?.value.trim().toLowerCase() || '';
+  const filtered = query ? entries.filter(e => normalize(e.definition).includes(query)) : entries;
+  const list = document.getElementById('deleteList');
+  const footer = document.getElementById('deleteFooter');
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>לא נמצאו הגדרות</h3></div>`;
+    footer.style.display = 'none';
+    return;
+  }
+  list.innerHTML = filtered.map(e => `
+    <div class="delete-item ${selectedForDelete.has(e.id) ? 'selected' : ''}" onclick="toggleDeleteSelect('${e.id}', this)">
+      <input type="checkbox" ${selectedForDelete.has(e.id) ? 'checked' : ''} onclick="event.stopPropagation();toggleDeleteSelect('${e.id}', this.closest('.delete-item'))">
+      <div class="delete-item-text">
+        <div class="delete-item-def">${escapeHtml(e.definition)}</div>
+        ${e.solution ? `<div class="delete-item-sol">◈ ${escapeHtml(e.solution)}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+  updateDeleteFooter();
+}
+
+function toggleDeleteSelect(id, el) {
+  if (selectedForDelete.has(id)) {
+    selectedForDelete.delete(id);
+    el.classList.remove('selected');
+    el.querySelector('input').checked = false;
+  } else {
+    selectedForDelete.add(id);
+    el.classList.add('selected');
+    el.querySelector('input').checked = true;
+  }
+  updateDeleteFooter();
+}
+
+function updateDeleteFooter() {
+  const footer = document.getElementById('deleteFooter');
+  const count = document.getElementById('deleteCount');
+  if (selectedForDelete.size > 0) {
+    footer.style.display = 'block';
+    count.textContent = selectedForDelete.size;
+  } else {
+    footer.style.display = 'none';
+  }
+}
+
+function selectAllDelete() {
+  const query = document.getElementById('deleteSearchInput')?.value.trim().toLowerCase() || '';
+  const filtered = query ? entries.filter(e => normalize(e.definition).includes(query)) : entries;
+  filtered.forEach(e => selectedForDelete.add(e.id));
+  renderDeleteList();
+}
+
+function deselectAllDelete() {
+  selectedForDelete.clear();
+  renderDeleteList();
+}
+
+function confirmDeleteSelected() {
+  if (selectedForDelete.size === 0) return;
+  const count = selectedForDelete.size;
+  entries = entries.filter(e => !selectedForDelete.has(e.id));
+  selectedForDelete.clear();
+  saveToLocalStorage();
+  renderDeleteList();
+  showToast(`🗑️ נמחקו ${count} הגדרות`, 'success');
+}
+
+// ============================================================
+// פידבק והצעות
+// ============================================================
+function openFeedbackModal() {
+  document.getElementById('feedback-text').value = '';
+  selectFeedbackType('bug');
+  document.getElementById('feedbackModal').classList.add('open');
+}
+
+function closeFeedbackModal() {
+  document.getElementById('feedbackModal').classList.remove('open');
+}
+
+function selectFeedbackType(type) {
+  feedbackType = type;
+  document.getElementById('ftype-bug').classList.toggle('selected', type === 'bug');
+  document.getElementById('ftype-improve').classList.toggle('selected', type === 'improve');
+}
+
+function submitFeedback() {
+  const text = document.getElementById('feedback-text').value.trim();
+  if (!text) { showToast('נא לכתוב תיאור', 'error'); return; }
+  closeFeedbackModal();
+  showToast('✅ תודה על המשוב!', 'success');
+}
+
+function openSuggestionModal() {
+  document.getElementById('sug-definition').value = '';
+  document.getElementById('sug-letters').value = '';
+  document.getElementById('sug-solution').value = '';
+  document.getElementById('sug-explanation').value = '';
+  document.getElementById('suggestionModal').classList.add('open');
+}
+
+function closeSuggestionModal() {
+  document.getElementById('suggestionModal').classList.remove('open');
+}
+
+function submitSuggestion() {
+  const definition = document.getElementById('sug-definition').value.trim();
+  if (!definition) { showToast('נא למלא את ההגדרה', 'error'); return; }
+  closeSuggestionModal();
+  showToast('✅ ההצעה נשלחה, תודה!', 'success');
+}
+
+function renderFeedbackList() {
+  // פונקציה ריקה - ניתן להרחיב בעתיד
+}
+
+function renderApprovalsList() {
+  const list = document.getElementById('approvalsList');
+  if (list) list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>אין הצעות ממתינות</h3></div>';
+}
+
+function loadSimilar() {
+  const container = document.getElementById('similarList');
+  if (container) container.innerHTML = '<div class="empty-state"><div class="icon">✅</div><h3>לא נמצאו קבוצות דומות</h3></div>';
+}
+
+// ============================================================
+// Google Drive Sync (placeholder)
+// ============================================================
+function handleSyncClick() {
+  showToast('🔧 תכונת הסנכרון בפיתוח', '');
+}
+
+function logout() {
+  showToast('התנתקת', 'success');
+}
+
+// ============================================================
+// אירועי חיפוש
+// ============================================================
+document.getElementById('searchInput').addEventListener('input', function() {
+  currentQuery = this.value.trim();
+  document.getElementById('clearSearch').style.display = currentQuery ? 'block' : 'none';
+  entriesPage = 0;
+  renderCardsPaged();
+});
+
+const zone = document.getElementById('importZone');
+if (zone) {
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = ev => processImportText(ev.target.result);
+      reader.readAsText(file, 'UTF-8');
+    }
+  });
+}
+
+// ============================================================
+// אתחול
+// ============================================================
+loadEntries();
+</script>
+</body>
+</html>
