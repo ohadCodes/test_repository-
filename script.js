@@ -823,17 +823,43 @@ function signInGoogle() {
 }
 
 function logout() {
+    // 1. ניקוי כל נתוני ההתחברות
     gAccessToken = null;
     gUserEmail = null;
     isOwner = false;
+    
+    // 2. ניקוי ה-localStorage
     localStorage.removeItem('g_access_token');
     localStorage.removeItem('g_user_email');
+    
+    // 3. עדכון ממשק משתמש
     updateSyncBtn('disconnected');
     updateOwnerUI();
-    showToast('התנתקת מהחשבון', 'success');
-    setTimeout(() => location.reload(), 500);
+    
+    // 4. איפוס המשתנה של Google (אם קיים)
+    if (window.google && google.accounts && google.accounts.id) {
+        try {
+            google.accounts.id.disableAutoSelect();
+        } catch(e) {}
+    }
+    
+    // 5. רענון הנתונים למצב אורח - טעינה מחדש של entries.json
+    showToast('התנתקת, טוען מחדש נתוני אורח...', '');
+    
+    // טעינה מחדש של הנתונים (ללא נתוני מנהל)
+    fetch('entries.json')
+        .then(response => response.json())
+        .then(data => {
+            entries = data;
+            saveDataLocal(entries);
+            renderCardsPaged(currentQuery);
+            showToast('✅ התנתקת בהצלחה, חזרת למצב אורח', 'success');
+        })
+        .catch(err => {
+            console.error('שגיאה בטעינה מחדש:', err);
+            location.reload(); // רענון מלא כמוצא אחרון
+        });
 }
-
 function handleSyncClick() {
     if (!gAccessToken) signInGoogle();
     else syncWithDrive();
