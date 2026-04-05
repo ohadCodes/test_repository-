@@ -1,1079 +1,125 @@
 // ==============================================
-// משתנים גלובליים
+// גרסה פשוטה - טוענת הכל בפעם אחת
 // ==============================================
-let entries = [];
-let currentQuery = '';
-let currentFilter = 'all';
-let isOwner = false;
-let gAccessToken = null;
-let gUserEmail = null;
-let selectedForDelete = new Set();
-let feedbackType = 'bug';
-let toastTimer = null;
 
-const OWNER_EMAIL = '012ohad@gmail.com';
-const STORAGE_KEY = 'tashbetz_entries';
+let allEntries = [];
 
-// ==============================================
-// פונקציות עזר
-// ==============================================
-function normalize(str) {
-    if (typeof str !== 'string' || !str) return '';
-    return str.replace(/[^\u0590-\u05FFa-zA-Z0-9\s]/g, '').trim();
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function highlightText(text, query) {
-    if (!query || !text) return escapeHtml(text);
-    const escaped = escapeHtml(text);
-    const escapedQ = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return escaped.replace(new RegExp(escapedQ, 'gi'), m => `<mark>${m}</mark>`);
-}
-
-function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
-    if (!t) return;
-    t.textContent = msg;
-    t.className = `toast ${type} show`;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
-}
-
-function saveDataLocal(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    updateStats();
-}
-
-function updateStats() {
-    const badge = document.getElementById('statsText');
-    if (badge && entries) {
-        badge.textContent = `${entries.length} הגדרות`;
-    }
-}
-
-function hebrewSort(a, b) {
-    return (a.definition || '').localeCompare(b.definition || '', 'he');
-}
-
-// ==============================================
-// טעינת נתונים מ-entries.json (כל ההגדרות בפעם אחת)
-// ==============================================
-async function loadEntriesFromJSON() {
+// טעינת הנתונים כשהדף נטען
+async function loadData() {
+    console.log("מתחיל טעינת נתונים...");
+    
     try {
         const response = await fetch('entries.json');
-        if (!response.ok) throw new Error('לא ניתן לטעון את קובץ ההגדרות');
         const data = await response.json();
         
-        entries = [...data];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        allEntries = data;
+        console.log("נטענו " + allEntries.length + " הגדרות");
         
-        console.log(`✅ נטענו ${data.length} הגדרות מ-entries.json`);
-        updateStats();
+        // הצגת ההגדרות
+        displayEntries(allEntries);
         
-        // הסתרת מסך ספלאש
+        // עדכון סטטוס
+        const stats = document.getElementById('statsText');
+        if (stats) stats.innerText = allEntries.length + " הגדרות";
+        
+        // הסתרת מסך פתיחה
         const splash = document.getElementById('splash');
         if (splash) {
-            splash.classList.add('hide');
+            splash.style.opacity = '0';
             setTimeout(() => splash.remove(), 500);
         }
         
-        renderAllCards();
-        return data;
-    } catch (error) {
-        console.error('❌ שגיאה בטעינת הגדרות:', error);
-        
-        // ניסיון לטעון מ-LocalStorage
-        const savedData = localStorage.getItem(STORAGE_KEY);
-        if (savedData) {
-            entries = JSON.parse(savedData);
-            console.log(`⚠️ נטענו ${entries.length} הגדרות מ-LocalStorage (גיבוי)`);
-            renderAllCards();
-            return entries;
-        }
-        
-        const cardsList = document.getElementById('cardsList');
-        if (cardsList) {
-            cardsList.innerHTML = `
-                <div class="empty-state">
-                    <div class="icon">⚠️</div>
-                    <h3>שגיאה בטעינת הגדרות</h3>
-                    <p>לא ניתן לטעון את קובץ ההגדרות. ודא שהקובץ entries.json נמצא בתיקייה.</p>
-                    <button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;">🔄 נסה שוב</button>
-                </div>`;
-        }
-        return [];
+    } catch(error) {
+        console.error("שגיאה:", error);
+        document.getElementById('cardsList').innerHTML = '<div class="empty-state">❌ שגיאה בטעינת הגדרות</div>';
     }
 }
 
-// ==============================================
-// תצוגת כל ההגדרות בפעם אחת (ללא פגינציה)
-// ==============================================
-function renderAllCards() {
-    const list = document.getElementById('cardsList');
-    const empty = document.getElementById('emptyState');
-    const info = document.getElementById('resultsInfo');
-    
-    if (!list) return;
-    
-    // חיפוש
-    const q = normalize(currentQuery);
-    let filtered = q ? entries.filter(e => normalize(e.definition || '').includes(q)) : [...entries];
-    
-    // סינון
-    if (currentFilter === 'no-explanation') {
-        filtered = filtered.filter(e => !e.explanation || !e.explanation.trim());
-    } else if (currentFilter === 'no-solution') {
-        filtered = filtered.filter(e => !e.solution || !e.solution.trim());
-    }
-    
-    // מיון
-    filtered = filtered.slice().sort(hebrewSort);
-    
-    // מצב ריק
-    if (entries.length === 0) {
-        list.innerHTML = '';
-        if (empty) empty.style.display = 'block';
-        if (info) info.style.display = 'none';
-        return;
-    }
-    
-    if (empty) empty.style.display = 'none';
-    
-    // מידע
-    if (info) {
-        info.style.display = 'block';
-        info.innerHTML = `מוצגות <span class="highlight">${filtered.length}</span> הגדרות מתוך: <span class="highlight">${entries.length}</span>`;
-    }
-    
-    // אין תוצאות חיפוש
-    if (filtered.length === 0) {
-        list.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>לא נמצאו תוצאות</h3><p>נסה מילה אחרת או שנה סינון</p></div>`;
-        return;
-    }
-    
-    // הצגת כל ההגדרות בפעם אחת
-    list.innerHTML = filtered.map((e, idx) => `
-        <div class="card" style="animation-delay:${Math.min(idx * 0.01, 0.3)}s">
-            <div class="card-header">
-                <div class="card-definition">${highlightText(e.definition || '', currentQuery)}</div>
-                <div class="card-meta">
-                    ${e.letters ? `<span class="tag tag-letters">${escapeHtml(e.letters)}</span>` : ''}
-                    ${e.type ? `<span class="tag tag-type">${escapeHtml(e.type)}</span>` : ''}
-                </div>
-            </div>
-            <div class="card-solution">◈ ${e.solution ? escapeHtml(e.solution) : '<span style="color:var(--danger);">ללא תשובה</span>'}</div>
-            ${e.explanation ? `<div class="card-divider"></div><div class="card-explanation">💡 ${escapeHtml(e.explanation)}</div>` : ''}
-            ${isOwner ? `<div class="card-actions"><button class="btn-icon" onclick="openEdit('${e.id}')">✏️ עריכה</button></div>` : ''}
-        </div>
-    `).join('');
-}
-
-// ==============================================
-// חיפוש וסינון
-// ==============================================
-function onSearchFieldChange() {
-    searchField = document.getElementById('searchField').value;
-    const placeholders = { definition: 'חפש הגדרה...', solution: 'חפש פתרון...', explanation: 'חפש רמז...' };
-    const input = document.getElementById('searchInput');
-    if (input) input.placeholder = placeholders[searchField];
-    currentQuery = input ? input.value.trim() : '';
-    renderAllCards();
-}
-
-function clearSearch() {
-    const input = document.getElementById('searchInput');
-    if (input) {
-        input.value = '';
-        currentQuery = '';
-    }
-    const clearBtn = document.getElementById('clearSearch');
-    if (clearBtn) clearBtn.style.display = 'none';
-    renderAllCards();
-    if (input) input.focus();
-}
-
-function setFilter(filter) {
-    currentFilter = filter;
-    document.querySelectorAll('.filter-btn[id^="filter"]').forEach(b => b.classList.remove('active'));
-    const activeBtn = document.getElementById(`filter-${filter}`);
-    if (activeBtn) activeBtn.classList.add('active');
-    renderAllCards();
-}
-
-// ==============================================
-// מעבר בין טאבים
-// ==============================================
-function switchTab(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-    
-    const selectedBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
-    if (selectedBtn) selectedBtn.classList.add('active');
-    
-    const selectedView = document.getElementById(`view-${tabId}`);
-    if (selectedView) selectedView.classList.add('active');
-    
-    const searchWrap = document.getElementById('searchWrap');
-    if (searchWrap) searchWrap.style.display = tabId === 'search' ? 'flex' : 'none';
-    
-    if (tabId === 'search') renderAllCards();
-    if (tabId === 'delete') renderDeleteList();
-    if (tabId === 'feedback' && isOwner) renderFeedbackList();
-    if (tabId === 'approvals' && isOwner) renderApprovalsList();
-    if (tabId === 'similar' && isOwner) loadSimilar();
-}
-
-// ==============================================
-// הוספת הגדרה
-// ==============================================
-function addEntry() {
-    const definition = document.getElementById('f-definition')?.value.trim();
-    const solution = document.getElementById('f-solution')?.value.trim();
-    let letters = document.getElementById('f-letters')?.value.trim();
-    const type = document.getElementById('f-type')?.value.trim();
-    const explanation = document.getElementById('f-explanation')?.value.trim();
-    
-    if (!definition) {
-        showToast('נדרשת הגדרה', 'error');
-        return;
-    }
-    
-    if (!letters) {
-        const m = definition.match(/\((\d[\d,]*)\)/);
-        if (m) letters = m[1];
-    }
-    
-    const entry = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        definition, solution, letters, type, explanation,
-        createdAt: Date.now()
-    };
-    
-    ['f-definition', 'f-solution', 'f-letters', 'f-type', 'f-explanation'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    
-    entries.unshift(entry);
-    saveDataLocal(entries);
-    showToast('✅ ההגדרה נוספה!', 'success');
-    switchTab('search');
-}
-
-// ==============================================
-// עריכת הגדרה
-// ==============================================
-function openEdit(id) {
-    const e = entries.find(x => x.id === id);
-    if (!e) return;
-    
-    const editId = document.getElementById('edit-id');
-    const editDef = document.getElementById('edit-definition');
-    const editLetters = document.getElementById('edit-letters');
-    const editType = document.getElementById('edit-type');
-    const editSolution = document.getElementById('edit-solution');
-    const editExplanation = document.getElementById('edit-explanation');
-    
-    if (editId) editId.value = id;
-    if (editDef) editDef.value = e.definition || '';
-    if (editLetters) editLetters.value = e.letters || '';
-    if (editType) editType.value = e.type || '';
-    if (editSolution) editSolution.value = e.solution || '';
-    if (editExplanation) editExplanation.value = e.explanation || '';
-    
-    const modal = document.getElementById('editModal');
-    if (modal) modal.classList.add('open');
-}
-
-function saveEdit() {
-    const id = document.getElementById('edit-id')?.value;
-    const idx = entries.findIndex(x => x.id === id);
-    if (idx === -1) return;
-    
-    const definition = document.getElementById('edit-definition')?.value.trim();
-    if (!definition) {
-        showToast('נדרשת הגדרה', 'error');
-        return;
-    }
-    
-    entries[idx] = {
-        ...entries[idx],
-        definition: definition,
-        letters: document.getElementById('edit-letters')?.value.trim() || '',
-        type: document.getElementById('edit-type')?.value.trim() || '',
-        solution: document.getElementById('edit-solution')?.value.trim() || '',
-        explanation: document.getElementById('edit-explanation')?.value.trim() || '',
-    };
-    
-    saveDataLocal(entries);
-    closeModal();
-    renderAllCards();
-    showToast('✅ ההגדרה עודכנה', 'success');
-}
-
-function closeModal() {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
-}
-
-// ==============================================
-// מחיקת הגדרות
-// ==============================================
-function renderDeleteList() {
-    const query = document.getElementById('deleteSearchInput')?.value.trim().toLowerCase() || '';
-    const list = document.getElementById('deleteList');
-    const footer = document.getElementById('deleteFooter');
-    
-    if (!list) return;
-    
-    const filtered = query ? entries.filter(e => normalize(e.definition).includes(query)) : entries;
-    
-    if (filtered.length === 0) {
-        list.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>לא נמצאו הגדרות</h3></div>`;
-        if (footer) footer.style.display = 'none';
-        return;
-    }
-    
-    list.innerHTML = filtered.map(e => `
-        <div class="delete-item ${selectedForDelete.has(e.id) ? 'selected' : ''}" onclick="toggleDeleteSelect('${e.id}', this)">
-            <input type="checkbox" ${selectedForDelete.has(e.id) ? 'checked' : ''} onclick="event.stopPropagation();toggleDeleteSelect('${e.id}', this.closest('.delete-item'))" />
-            <div class="delete-item-text">
-                <div class="delete-item-def">${escapeHtml(e.definition)}</div>
-                ${e.solution ? `<div class="delete-item-sol">◈ ${escapeHtml(e.solution)}</div>` : ''}
-            </div>
-        </div>
-    `).join('');
-    
-    updateDeleteFooter();
-}
-
-function toggleDeleteSelect(id, el) {
-    if (selectedForDelete.has(id)) {
-        selectedForDelete.delete(id);
-        if (el) el.classList.remove('selected');
-    } else {
-        selectedForDelete.add(id);
-        if (el) el.classList.add('selected');
-    }
-    const checkbox = el ? el.querySelector('input') : null;
-    if (checkbox) checkbox.checked = selectedForDelete.has(id);
-    updateDeleteFooter();
-}
-
-function updateDeleteFooter() {
-    const footer = document.getElementById('deleteFooter');
-    const count = document.getElementById('deleteCount');
-    if (footer && count) {
-        footer.style.display = selectedForDelete.size > 0 ? 'block' : 'none';
-        count.textContent = selectedForDelete.size;
-    }
-}
-
-function selectAllDelete() {
-    const query = document.getElementById('deleteSearchInput')?.value.trim().toLowerCase() || '';
-    const filtered = query ? entries.filter(e => normalize(e.definition).includes(query)) : entries;
-    filtered.forEach(e => selectedForDelete.add(e.id));
-    renderDeleteList();
-}
-
-function deselectAllDelete() {
-    selectedForDelete.clear();
-    renderDeleteList();
-}
-
-function confirmDeleteSelected() {
-    if (selectedForDelete.size === 0) return;
-    const count = selectedForDelete.size;
-    entries = entries.filter(e => !selectedForDelete.has(e.id));
-    selectedForDelete.clear();
-    saveDataLocal(entries);
-    renderDeleteList();
-    renderAllCards();
-    showToast(`🗑️ נמחקו ${count} הגדרות`, 'success');
-}
-
-function openDelete(id) {
-    const e = entries.find(x => x.id === id);
-    if (!e) return;
-    const deleteId = document.getElementById('delete-id');
-    const deletePreview = document.getElementById('delete-preview');
-    if (deleteId) deleteId.value = id;
-    if (deletePreview) deletePreview.textContent = `${e.definition} → ${e.solution}`;
-    const modal = document.getElementById('deleteModal');
-    if (modal) modal.classList.add('open');
-}
-
-function confirmDelete() {
-    const id = document.getElementById('delete-id')?.value;
-    if (id) {
-        entries = entries.filter(x => x.id !== id);
-        saveDataLocal(entries);
-        closeModal();
-        renderAllCards();
-        showToast('🗑️ ההגדרה נמחקה', 'success');
-    }
-}
-
-// ==============================================
-// ייבוא וייצוא
-// ==============================================
-function exportEntries() {
-    if (entries.length === 0) {
-        showToast('אין הגדרות לייצוא', 'error');
-        return;
-    }
-    const lines = entries.map(e => {
-        let def = `ההגדרה: ${e.definition}`;
-        if (e.letters) def += ` (${e.letters})`;
-        if (e.type) def += ` [${e.type}]`;
-        const parts = [def, `הפתרון: ${e.solution || ''}`];
-        if (e.explanation) parts.push(`הסבר: ${e.explanation}`);
-        return parts.join(' | ');
-    });
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `definitions_${new Date().toLocaleDateString('he-IL').replace(/\//g, '-')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(`✅ יוצאו ${entries.length} הגדרות`, 'success');
-}
-
-function handleFileImport(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => processImportText(e.target.result);
-    reader.readAsText(file, 'UTF-8');
-}
-
-function importFromPaste() {
-    const text = document.getElementById('pasteArea')?.value;
-    if (!text || !text.trim()) {
-        showToast('אין טקסט לייבוא', 'error');
-        return;
-    }
-    processImportText(text);
-    const pasteArea = document.getElementById('pasteArea');
-    if (pasteArea) pasteArea.value = '';
-}
-
-function parseEntryLine(line) {
-    line = line.trim();
-    if (!line) return null;
-    
-    let definition = '', solution = '', explanation = '', letters = '', type = '';
-    const parts = line.split('|').map(p => p.trim());
-    
-    for (const part of parts) {
-        if (part.startsWith('ההגדרה:') || part.startsWith('הגדרה:')) {
-            let def = part.replace(/^(ה)?הגדרה:\s*/, '');
-            const lettersMatch = def.match(/\((\d[\d,\s-]*)\)/);
-            if (lettersMatch) letters = lettersMatch[1];
-            const typeMatch = def.match(/\[([^\]]+)\]/);
-            if (typeMatch) type = typeMatch[1];
-            definition = def.replace(/\s*\(\d[\d,\s-]*\)\s*/g, '').replace(/\s*\[[^\]]+\]\s*/g, '').trim();
-        } else if (part.startsWith('הפתרון:') || part.startsWith('פתרון:')) {
-            solution = part.replace(/^(ה)?פתרון:\s*/, '').trim();
-        } else if (part.startsWith('הסבר:') || part.startsWith('סבר:')) {
-            explanation = part.replace(/^(ה)?סבר:\s*/, '').trim();
-        }
-    }
-    
-    if (!definition) return null;
-    
-    return {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        definition, solution, letters, type, explanation,
-        createdAt: Date.now()
-    };
-}
-
-function processImportText(text) {
-    const lines = text.split('\n');
-    let added = 0, updated = 0, skipped = 0, failed = 0;
-    
-    for (const line of lines) {
-        if (!line.trim()) continue;
-        const entry = parseEntryLine(line);
-        if (!entry) {
-            failed++;
-            continue;
-        }
-        
-        const normNew = normalize(entry.definition);
-        const existingIdx = entries.findIndex(e => normalize(e.definition) === normNew);
-        
-        if (existingIdx !== -1) {
-            const existing = entries[existingIdx];
-            let changed = false;
-            let updatedEntry = { ...existing };
-            
-            if (entry.solution && !existing.solution) {
-                updatedEntry.solution = entry.solution;
-                changed = true;
-            }
-            if (entry.explanation && !existing.explanation) {
-                updatedEntry.explanation = entry.explanation;
-                changed = true;
-            }
-            if (entry.letters && !existing.letters) {
-                updatedEntry.letters = entry.letters;
-                changed = true;
-            }
-            if (entry.type && !existing.type) {
-                updatedEntry.type = entry.type;
-                changed = true;
-            }
-            
-            if (changed) {
-                entries[existingIdx] = updatedEntry;
-                updated++;
-            } else {
-                skipped++;
-            }
-        } else {
-            entries.unshift(entry);
-            added++;
-        }
-    }
-    
-    saveDataLocal(entries);
-    
-    const parts = [];
-    if (added > 0) parts.push(`נוספו ${added} חדשות`);
-    if (updated > 0) parts.push(`עודכנו ${updated} פתרונות/הסברים`);
-    if (skipped > 0) parts.push(`${skipped} כפילויות דולגו`);
-    if (failed > 0) parts.push(`${failed} שורות לא זוהו`);
-    
-    if (added > 0 || updated > 0) {
-        showToast(`✅ ${parts.join(' · ')}`, 'success');
-        switchTab('search');
-    } else if (skipped > 0) {
-        showToast(`⚠️ ${parts.join(' · ')}`, '');
-    } else {
-        showToast('לא זוהו הגדרות — בדוק את הפורמט', 'error');
-    }
-}
-
-function exportUpdatedHTML() {
-    const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'updated_riddles.html';
-    a.click();
-    URL.revokeObjectURL(blob);
-}
-
-// ==============================================
-// בדיקת כפילויות
-// ==============================================
-function checkDuplicates() {
-    const seen = {};
-    const groups = [];
-    
-    for (const e of entries) {
-        const key = normalize(e.definition);
-        if (!seen[key]) seen[key] = [];
-        seen[key].push(e);
-    }
-    
-    for (const key in seen) {
-        if (seen[key].length > 1) groups.push(seen[key]);
-    }
-    
-    const container = document.getElementById('dupesResult');
+// הצגת כל ההגדרות
+function displayEntries(entries) {
+    const container = document.getElementById('cardsList');
     if (!container) return;
     
-    if (groups.length === 0) {
-        container.innerHTML = `<div class="empty-state"><div class="icon">✅</div><h3>אין כפילויות!</h3><p>כל ${entries.length} ההגדרות ייחודיות</p></div>`;
+    if (!entries || entries.length === 0) {
+        container.innerHTML = '<div class="empty-state">📭 אין הגדרות</div>';
         return;
     }
     
-    let html = `<div class="results-info">נמצאו <span class="highlight">${groups.length}</span> קבוצות כפילויות
-        <button class="btn-icon danger" onclick="deleteAllDupes()">🗑️ מחק כפילויות אוטומטית</button>
-    </div>`;
+    let html = '';
     
-    for (const group of groups) {
-        html += `<div class="card" style="border-color:var(--danger);margin-bottom:14px;">
-            <div style="font-size:0.75rem;color:var(--danger);font-weight:700;margin-bottom:10px;">⚠️ ${group.length} כניסות זהות</div>`;
-        group.forEach((e, idx) => {
-            html += `<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">
-                <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">${escapeHtml(e.definition)}</div>
-                <div style="font-size:0.9rem;color:var(--success);">◈ ${escapeHtml(e.solution)}</div>
-                <div style="margin-top:8px;">
-                    ${idx > 0 ? `<button class="btn-icon danger" onclick="deleteDupe('${e.id}')">🗑️ מחק עותק זה</button>` : `<span style="font-size:0.75rem;color:var(--text-muted);">← ישמר</span>`}
-                </div>
-            </div>`;
-        });
-        html += `</div>`;
+    for (let i = 0; i < entries.length; i++) {
+        const e = entries[i];
+        html += `
+            <div class="card">
+                <div class="card-definition">${escapeHtml(e.definition)}</div>
+                <div class="card-solution">◈ ${escapeHtml(e.solution || 'ללא פתרון')}</div>
+                ${e.explanation ? `<div class="card-explanation">💡 ${escapeHtml(e.explanation)}</div>` : ''}
+            </div>
+        `;
     }
     
     container.innerHTML = html;
 }
 
-function deleteDupe(id) {
-    entries = entries.filter(e => e.id !== id);
-    saveDataLocal(entries);
-    showToast('🗑️ הכפילות נמחקה', 'success');
-    checkDuplicates();
-    renderAllCards();
+// פונקציית עזר להצגת טקסט בטוח
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function deleteAllDupes() {
-    const seen = {};
-    const toKeep = [];
-    for (const e of entries) {
-        const key = normalize(e.definition);
-        if (!seen[key]) {
-            seen[key] = true;
-            toKeep.push(e);
-        }
-    }
-    const removed = entries.length - toKeep.length;
-    entries = toKeep;
-    saveDataLocal(entries);
-    showToast(`✅ נמחקו ${removed} כפילויות`, 'success');
-    checkDuplicates();
-    renderAllCards();
-}
-
-// ==============================================
-// הצעות הגדרה
-// ==============================================
-function openSuggestionModal() {
-    ['sug-definition', 'sug-letters', 'sug-solution', 'sug-explanation'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    const modal = document.getElementById('suggestionModal');
-    if (modal) modal.classList.add('open');
-    setTimeout(() => document.getElementById('sug-definition')?.focus(), 350);
-}
-
-function closeSuggestionModal() {
-    const modal = document.getElementById('suggestionModal');
-    if (modal) modal.classList.remove('open');
-}
-
-async function submitSuggestion() {
-    const definition = document.getElementById('sug-definition')?.value.trim();
-    const solution = document.getElementById('sug-solution')?.value.trim();
-    const letters = document.getElementById('sug-letters')?.value.trim();
-    const explanation = document.getElementById('sug-explanation')?.value.trim();
+// חיפוש
+function searchEntries() {
+    const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
     
-    if (!definition) {
-        showToast('נא למלא את ההגדרה', 'error');
+    if (!query) {
+        displayEntries(allEntries);
         return;
     }
     
-    closeSuggestionModal();
-    showToast('⏳ שולח הצעה...', '');
+    const filtered = allEntries.filter(e => 
+        e.definition.toLowerCase().includes(query) ||
+        (e.solution && e.solution.toLowerCase().includes(query))
+    );
     
-    try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=submitSuggestion&def=' + encodeURIComponent(definition) + '&sol=' + encodeURIComponent(solution || '') + '&letters=' + encodeURIComponent(letters || '') + '&exp=' + encodeURIComponent(explanation || ''));
-        const data = await response.json();
-        if (data.ok) showToast('✅ ההצעה נשלחה, תודה!', 'success');
-        else showToast('שגיאה בשליחה', 'error');
-    } catch(e) {
-        showToast('שגיאה בשליחה', 'error');
-    }
-}
-
-// ==============================================
-// פידבק
-// ==============================================
-function openFeedbackModal() {
-    const textarea = document.getElementById('feedback-text');
-    if (textarea) textarea.value = '';
-    selectFeedbackType('bug');
-    const modal = document.getElementById('feedbackModal');
-    if (modal) modal.classList.add('open');
-    setTimeout(() => document.getElementById('feedback-text')?.focus(), 350);
-}
-
-function closeFeedbackModal() {
-    const modal = document.getElementById('feedbackModal');
-    if (modal) modal.classList.remove('open');
-}
-
-function selectFeedbackType(type) {
-    feedbackType = type;
-    const bugBtn = document.getElementById('ftype-bug');
-    const improveBtn = document.getElementById('ftype-improve');
-    if (bugBtn) bugBtn.classList.toggle('selected', type === 'bug');
-    if (improveBtn) improveBtn.classList.toggle('selected', type === 'improve');
-}
-
-async function submitFeedback() {
-    const text = document.getElementById('feedback-text')?.value.trim();
-    if (!text) {
-        showToast('נא לכתוב תיאור', 'error');
-        return;
-    }
-    closeFeedbackModal();
-    showToast('שולח פידבק...', '');
-    try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=submitFeedback&type=' + encodeURIComponent(feedbackType) + '&text=' + encodeURIComponent(text));
-        const data = await response.json();
-        if (data.ok) showToast('✅ הפידבק התקבל, תודה!', 'success');
-        else showToast('שגיאה בשליחת הפידבק', 'error');
-    } catch(e) {
-        showToast('שגיאה בשליחת הפידבק', 'error');
-    }
-}
-
-// ==============================================
-// ניהול מנהל - התחברות גוגל
-// ==============================================
-function updateOwnerUI() {
-    document.querySelectorAll('.owner-only').forEach(el => {
-        el.style.display = isOwner ? 'inline-block' : 'none';
-    });
+    displayEntries(filtered);
     
-    const suggestBtn = document.getElementById('suggest-btn');
-    const feedbackBtn = document.getElementById('feedback-btn');
+    const info = document.getElementById('resultsInfo');
+    if (info) info.innerText = `נמצאו ${filtered.length} תוצאות מתוך ${allEntries.length}`;
+}
+
+// איפוס חיפוש
+function clearSearch() {
+    const input = document.getElementById('searchInput');
+    if (input) input.value = '';
+    displayEntries(allEntries);
+    const info = document.getElementById('resultsInfo');
+    if (info) info.innerText = '';
+}
+
+// מעבר טאבים
+function switchTab(tabId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    const view = document.getElementById('view-' + tabId);
+    if (view) view.classList.add('active');
     
-    if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
-    if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
-}
-
-function updateSyncBtn(state) {
-    const btn = document.getElementById('syncBtn');
-    const icon = document.getElementById('syncIcon');
-    if (!btn || !icon) return;
-    btn.classList.remove('syncing', 'connected');
-    if (state === 'connected') {
-        icon.textContent = '👑';
-        btn.classList.add('connected');
-        btn.title = 'מחובר כמנהל — לחץ לסנכרון';
-    } else if (state === 'syncing') {
-        icon.textContent = '🔄';
-        btn.classList.add('syncing');
-        btn.title = 'מסנכרן...';
-    } else if (state === 'error') {
-        icon.textContent = '⚠️';
-        btn.title = 'שגיאת סנכרון';
-    } else {
-        icon.textContent = '☁️';
-        btn.title = 'התחבר כמנהל';
-    }
-}
-
-function signInGoogle() {
-    const client = google.accounts.oauth2.initTokenClient({
-        client_id: '361524127527-b5cvvltaj5btoitfe07lcf7053hp7vhl.apps.googleusercontent.com',
-        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
-        callback: async (resp) => {
-            if (resp.error) {
-                showToast('שגיאה בהתחברות', 'error');
-                return;
-            }
-            gAccessToken = resp.access_token;
-            localStorage.setItem('g_access_token', gAccessToken);
-            try {
-                const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { 'Authorization': `Bearer ${gAccessToken}` }
-                });
-                const u = await info.json();
-                gUserEmail = u.email;
-                localStorage.setItem('g_user_email', gUserEmail);
-                isOwner = gUserEmail === '012ohad@gmail.com';
-                if (!isOwner) {
-                    showToast('רק המנהל יכול להתחבר', 'error');
-                    gAccessToken = null;
-                    localStorage.removeItem('g_access_token');
-                    return;
-                }
-                updateSyncBtn('connected');
-                showToast('✅ מחובר כמנהל', 'success');
-                updateOwnerUI();
-                await syncWithDrive();
-            } catch(e) {
-                console.error('Error getting user info:', e);
-            }
-        }
-    });
-    client.requestAccessToken();
-}
-
-function logout() {
-    gAccessToken = null;
-    gUserEmail = null;
-    isOwner = false;
-    localStorage.removeItem('g_access_token');
-    localStorage.removeItem('g_user_email');
-    updateSyncBtn('disconnected');
-    updateOwnerUI();
-    showToast('התנתקת מהחשבון', 'success');
-    setTimeout(() => location.reload(), 500);
-}
-
-function handleSyncClick() {
-    if (!gAccessToken) signInGoogle();
-    else syncWithDrive();
-}
-
-async function syncWithDrive() {
-    if (!isOwner) return;
-    updateSyncBtn('syncing');
-    try {
-        const url = 'https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=getEntries&_t=' + Date.now();
-        const res = await fetch(url);
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-            entries = data;
-            saveDataLocal(entries);
-            renderAllCards();
-            showToast('✅ הנתונים סונכרנו מהענן', 'success');
-        }
-        updateSyncBtn('connected');
-    } catch (e) {
-        console.error('Sync error:', e);
-        updateSyncBtn('error');
-        showToast('שגיאה בסנכרון', 'error');
-    }
-}
-
-// ==============================================
-// ניהול הצעות (admin)
-// ==============================================
-async function renderApprovalsList() {
-    const list = document.getElementById('approvalsList');
-    if (!list) return;
-    list.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען...</div>';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
+    if (btn) btn.classList.add('active');
     
-    try {
-        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=getSuggestions&_t=' + Date.now()).then(r => r.json());
-        if (!Array.isArray(data) || data.length === 0) {
-            list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>אין הצעות ממתינות</h3></div>';
-            const tabApprovals = document.getElementById('tab-approvals');
-            if (tabApprovals) tabApprovals.textContent = '📬 הצעות';
-            return;
-        }
-        
-        window.currentSuggestions = data;
-        const tabApprovals = document.getElementById('tab-approvals');
-        if (tabApprovals) tabApprovals.innerHTML = `📬 הצעות <span class="count-badge">${data.length}</span>`;
-        
-        list.innerHTML = data.map((s, i) => `
-            <div class="approval-card">
-                <div class="approval-card-def">📝 ${escapeHtml(s.definition)}${s.letters ? ' (' + escapeHtml(s.letters) + ')' : ''}</div>
-                ${s.solution ? `<div class="approval-card-sol">◈ ${escapeHtml(s.solution)}</div>` : ''}
-                ${s.explanation ? `<div class="approval-card-exp">💡 ${escapeHtml(s.explanation)}</div>` : ''}
-                <div class="approval-actions">
-                    <button class="btn-approve" onclick="approveSuggestion(${i})">✅ אשר והוסף</button>
-                    <button class="btn-reject" onclick="rejectSuggestion(${i})">❌ דחה</button>
-                </div>
-            </div>
-        `).join('');
-    } catch(e) {
-        list.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינה</div>';
-    }
+    const searchWrap = document.getElementById('searchWrap');
+    if (searchWrap) searchWrap.style.display = tabId === 'search' ? 'flex' : 'none';
 }
 
-async function approveSuggestion(index) {
-    const suggestions = window.currentSuggestions || [];
-    const suggestion = suggestions[index];
-    if (!suggestion) return;
-    
-    const entry = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        definition: suggestion.definition,
-        solution: suggestion.solution || '',
-        letters: suggestion.letters || '',
-        type: suggestion.type || '',
-        explanation: suggestion.explanation || '',
-        createdAt: Date.now()
-    };
-    
-    entries.unshift(entry);
-    saveDataLocal(entries);
-    renderAllCards();
-    
-    suggestions.splice(index, 1);
-    window.currentSuggestions = suggestions;
-    renderApprovalsList();
-    showToast('✅ ההצעה אושרה ונוספה למאגר', 'success');
-}
-
-async function rejectSuggestion(index) {
-    const suggestions = window.currentSuggestions || [];
-    suggestions.splice(index, 1);
-    window.currentSuggestions = suggestions;
-    renderApprovalsList();
-    showToast('❌ ההצעה נדחתה', 'success');
-}
-
-// ==============================================
-// פידבקים למנהל
-// ==============================================
-async function renderFeedbackList() {
-    const bugsEl = document.getElementById('feedbackListBugs');
-    const improvEl = document.getElementById('feedbackListImprovements');
-    
-    if (!bugsEl || !improvEl) return;
-    
-    try {
-        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=getFeedback&_t=' + Date.now()).then(r => r.json());
-        const bugs = [];
-        const improvements = [];
-        
-        data.forEach((item, idx) => {
-            const enriched = { ...item, _idx: idx };
-            if (item.type === 'improvement') improvements.push(enriched);
-            else bugs.push(enriched);
-        });
-        
-        const renderCard = (item) => `
-            <div class="card" style="margin-bottom:8px; padding:12px;">
-                <div style="font-size:0.85rem;margin-bottom:8px;">${escapeHtml(item.text)}</div>
-                <div style="display:flex; gap:8px; justify-content: flex-end;">
-                    ${item.type === 'improvement' ? `<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="approveFeedbackItem(${item._idx})">אישור</button>` : ''}
-                    <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(244,63,94,0.1); color:var(--danger);" onclick="deleteFeedbackItem(${item._idx})">מחיקה</button>
-                </div>
-            </div>
-        `;
-        
-        bugsEl.innerHTML = bugs.length ? bugs.map(renderCard).join('') : '<div style="color:var(--text-dim);text-align:center;padding:16px;">אין פריטים</div>';
-        improvEl.innerHTML = improvements.length ? improvements.map(renderCard).join('') : '<div style="color:var(--text-dim);text-align:center;padding:16px;">אין פריטים</div>';
-    } catch(e) {
-        bugsEl.innerHTML = '<div style="color:var(--danger);text-align:center;padding:16px;">שגיאה בטעינה</div>';
-        improvEl.innerHTML = '<div style="color:var(--danger);text-align:center;padding:16px;">שגיאה בטעינה</div>';
-    }
-}
-
-async function approveFeedbackItem(index) {
-    try {
-        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=approveFeedback&index=' + index).then(r => r.json());
-        if (data && data.ok) {
-            renderFeedbackList();
-            setTimeout(() => syncWithDrive(), 300);
-            showToast('ההצעה אושרה ונוספה למאגר', 'success');
-        } else {
-            showToast('שגיאה בתהליך האישור', 'error');
-        }
-    } catch(e) {
-        showToast('שגיאה בתהליך האישור', 'error');
-    }
-}
-
-async function deleteFeedbackItem(index) {
-    if (!confirm('למחוק את הפריט?')) return;
-    try {
-        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=deleteFeedback&index=' + index).then(r => r.json());
-        if (data.ok) {
-            showToast('נמחק בהצלחה', 'success');
-            renderFeedbackList();
-        }
-    } catch(e) {
-        showToast('שגיאה במחיקה', 'error');
-    }
-}
-
-// ==============================================
-// הגדרות דומות (admin)
-// ==============================================
-async function loadSimilar() {
-    const container = document.getElementById('similarList');
-    if (!container) return;
-    container.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען קבוצות...</div>';
-    
-    try {
-        const groups = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=getSimilar&_t=' + Date.now()).then(r => r.json());
-        if (!Array.isArray(groups) || groups.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">✅</div><h3>לא נמצאו קבוצות דומות</h3></div>';
-            return;
-        }
-        
-        container.innerHTML = '';
-        groups.forEach((group, idx) => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            let html = `<h4 style="margin-bottom:10px;">קבוצה ${idx + 1} - ${group.length} הגדרות</h4><ol style="padding-right:18px;">`;
-            group.forEach(g => {
-                html += `<li style="margin-bottom:6px;">${escapeHtml(g.definition)} ${escapeHtml(g.letters || '')}</li>`;
-            });
-            html += '</ol>';
-            const ids = group.map(g => g.id);
-            const idsEncoded = encodeURIComponent(JSON.stringify(ids));
-            html += `<button class="btn btn-primary" onclick="mergeGroup('${idsEncoded}')">מזג קבוצה</button>`;
-            div.innerHTML = html;
-            container.appendChild(div);
-        });
-    } catch(e) {
-        container.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינת קבוצות דומות</div>';
-    }
-}
-
-async function mergeGroup(idsEncoded) {
-    try {
-        const ids = JSON.parse(decodeURIComponent(idsEncoded));
-        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=merge&ids=' + encodeURIComponent(JSON.stringify(ids))).then(r => r.json());
-        if (data && data.ok) {
-            showToast('הקבוצה מוזגה בהצלחה!', 'success');
-            loadSimilar();
-        } else {
-            showToast('שגיאה במיזוג', 'error');
-        }
-    } catch(e) {
-        showToast('שגיאה במיזוג', 'error');
-    }
-}
-
-// ==============================================
-// אתחול הדף
-// ==============================================
+// הפעלה
 document.addEventListener('DOMContentLoaded', function() {
-    loadEntriesFromJSON();
+    loadData();
     
-    // בדיקת מצב מנהל
-    const savedEmail = localStorage.getItem('g_user_email');
-    if (savedEmail === OWNER_EMAIL) {
-        isOwner = true;
-        updateOwnerUI();
-        updateSyncBtn('connected');
-    }
-    
-    // מאזינים
+    // מאזין לחיפוש
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            currentQuery = this.value.trim();
-            const clearBtn = document.getElementById('clearSearch');
-            if (clearBtn) clearBtn.style.display = currentQuery ? 'block' : 'none';
-            renderAllCards();
-        });
+        searchInput.addEventListener('input', searchEntries);
     }
     
-    // סגירת מודלים
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-        overlay.addEventListener('click', e => {
-            if (e.target === overlay) closeModal();
-        });
-    });
-    
-    // גרירה לייבוא
-    const importZone = document.getElementById('importZone');
-    if (importZone) {
-        importZone.addEventListener('dragover', e => { e.preventDefault(); importZone.classList.add('drag-over'); });
-        importZone.addEventListener('dragleave', () => importZone.classList.remove('drag-over'));
-        importZone.addEventListener('drop', e => {
-            e.preventDefault();
-            importZone.classList.remove('drag-over');
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = ev => processImportText(ev.target.result);
-                reader.readAsText(file, 'UTF-8');
-            }
-        });
-    }
-    
-    // טאב ברירת מחדל
+    // פתיחת טאב חיפוש כברירת מחדל
     switchTab('search');
 });
