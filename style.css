@@ -734,7 +734,7 @@
 }
 /* כפתורי מנהל - מוסתרים כברירת מחדל */
 .owner-only {
-    display: none !important;
+    display: none ;
 }
 
 /* כפתורי משתמש - מוצגים כברירת מחדל */
