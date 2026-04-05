@@ -727,9 +727,12 @@
 /* כאן תדביק את כל העיצוב הישן שהיה לך (בלי תגיות <style>) */
 
 /* כברירת מחדל - כל הכפתורים למנהל מוסתרים */
+/* כברירת מחדל - כפתורי מנהל מוסתרים */
 .owner-only {
-    display: none !important;
+    display:inline-block  !important;
 }
 
-#login-btn { display: block; }
-#logout-btn { display: none; }
+/* כפתורי משתמש רגיל - תמיד מוצגים */
+.suggest-btn, .feedback-btn {
+    display: none !important;
+}
