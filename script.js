@@ -1,4 +1,3 @@
-<script>
   // הגדרת משתנים גלובליים בראש הסקריפט למניעת שגיאות initialization
   let allEntries = [];
   let gAccessToken = null;
@@ -1596,4 +1595,3 @@ window.logout = function() {
         loadEntriesFromFile();
     });
   }
-    </script>
