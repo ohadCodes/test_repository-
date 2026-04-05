@@ -1088,7 +1088,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateOwnerUI();
         updateSyncBtn('connected');
     }
-    
+    updateOwnerUI();
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
