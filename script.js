@@ -908,45 +908,60 @@ async function renderApprovalsList() {
         const tabApprovals = document.getElementById('tab-approvals');
         if (tabApprovals) tabApprovals.innerHTML = `📬 הצעות <span class="count-badge">${data.length}</span>`;
         
-        list.innerHTML = data.map((s, i) => `
-            <div class="approval-card">
-                <div class="approval-card-def">📝 ${escapeHtml(s.definition)}${s.letters ? ' (' + escapeHtml(s.letters) + ')' : ''}</div>
-                ${s.solution ? `<div class="approval-card-sol">◈ ${escapeHtml(s.solution)}</div>` : ''}
-                ${s.explanation ? `<div class="approval-card-exp">💡 ${escapeHtml(s.explanation)}</div>` : ''}
-                <div class="approval-actions">
-                    <button class="btn-approve" onclick="approveSuggestion(${i})">✅ אשר והוסף</button>
-                    <button class="btn-reject" onclick="rejectSuggestion(${i})">❌ דחה</button>
-                </div>
-            </div>
+        list.innerHTML = data.map(s => `
+    <div class="approval-card">
+        <div class="approval-card-def">📝 ${escapeHtml(s.definition)}${s.letters ? ' (' + escapeHtml(s.letters) + ')' : ''}</div>
+        ${s.solution ? `<div class="approval-card-sol">◈ ${escapeHtml(s.solution)}</div>` : ''}
+        ${s.explanation ? `<div class="approval-card-exp">💡 ${escapeHtml(s.explanation)}</div>` : ''}
+        <div class="approval-actions">
+            <button class="btn-approve" onclick="approveSuggestion('${s.id}')">✅ אשר והוסף</button>
+            <button class="btn-reject" onclick="rejectSuggestion('${s.id}')">❌ דחה</button>
+        </div>
+    </div>
+`).join('');
         `).join('');
     } catch(e) {
         list.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינה</div>';
     }
 }
 
-async function approveSuggestion(index) {
-    const suggestions = window.currentSuggestions || [];
-    const suggestion = suggestions[index];
-    if (!suggestion) return;
-    
-    const entry = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        definition: suggestion.definition,
-        solution: suggestion.solution || '',
-        letters: suggestion.letters || '',
-        type: suggestion.type || '',
-        explanation: suggestion.explanation || '',
-        createdAt: Date.now()
-    };
-    
-    entries.unshift(entry);
-    saveDataLocal(entries);
-    renderCardsPaged(currentQuery);
-    
-    suggestions.splice(index, 1);
-    window.currentSuggestions = suggestions;
-    renderApprovalsList();
-    showToast('✅ ההצעה אושרה ונוספה למאגר', 'success');
+async function approveSuggestion(id) {
+    try {
+        // 1. מחיקה מהשרת
+        await fetch(`${APPS_SCRIPT_URL}?action=deleteSuggestion&id=${id}`);
+        // 2. מציאת ההצעה בזיכרון
+        const suggestions = window.currentSuggestions || [];
+        const suggestion = suggestions.find(s => s.id === id);
+        if (suggestion) {
+            const entry = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+                definition: suggestion.definition,
+                solution: suggestion.solution || '',
+                letters: suggestion.letters || '',
+                type: suggestion.type || '',
+                explanation: suggestion.explanation || '',
+                createdAt: Date.now()
+            };
+            entries.unshift(entry);
+            saveDataLocal(entries);
+            renderCardsPaged(currentQuery);
+        }
+        // 3. רענון רשימת ההצעות
+        await renderApprovalsList();
+        showToast('✅ ההצעה אושרה ונוספה', 'success');
+    } catch(e) {
+        showToast('שגיאה באישור ההצעה', 'error');
+    }
+}
+
+async function rejectSuggestion(id) {
+    try {
+        await fetch(`${APPS_SCRIPT_URL}?action=deleteSuggestion&id=${id}`);
+        await renderApprovalsList();
+        showToast('❌ ההצעה נדחתה', 'success');
+    } catch(e) {
+        showToast('שגיאה בדחיית ההצעה', 'error');
+    }
 }
 
 async function rejectSuggestion(index) {
@@ -998,19 +1013,50 @@ async function renderFeedbackList() {
 
 async function approveFeedbackItem(index) {
     try {
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=approveFeedback&index=${index}`).then(r => r.json());
-        if (data && data.ok) {
-            renderFeedbackList();
-            setTimeout(() => syncWithDrive(), 300);
-            showToast('ההצעה אושרה ונוספה למאגר', 'success');
-        } else {
-            showToast('שגיאה בתהליך האישור', 'error');
+        // שליפת הפריט מהשרת לפי אינדקס
+        const res = await fetch(`${APPS_SCRIPT_URL}?action=getFeedbackItem&index=${index}`);
+        const item = await res.json();
+        if (item && item.text) {
+            const entry = parseEntryLine(item.text);
+            if (entry) {
+                entries.unshift(entry);
+                saveDataLocal(entries);
+                renderCardsPaged(currentQuery);
+                showToast('✅ הפידבק אושר ונוסף למאגר', 'success');
+            } else {
+                showToast('לא ניתן היה לפרק את הפידבק להגדרה תקינה', 'error');
+                return;
+            }
         }
+        // מחיקת הפריט מהשרת
+        await fetch(`${APPS_SCRIPT_URL}?action=deleteFeedback&index=${index}`);
+        renderFeedbackList();
     } catch(e) {
-        showToast('שגיאה בתהליך האישור', 'error');
+        showToast('שגיאה באישור הפידבק', 'error');
     }
 }
-
+async function pushToCloud() {
+    if (!isOwner) return;
+    updateSyncBtn('syncing');
+    try {
+        const payload = JSON.stringify(entries);
+        const res = await fetch(`${APPS_SCRIPT_URL}?action=updateEntries`, {
+            method: 'POST',
+            body: payload,
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.ok) {
+            showToast('✅ הנתונים הועלו לענן', 'success');
+            updateSyncBtn('connected');
+        } else {
+            throw new Error('upload failed');
+        }
+    } catch(e) {
+        updateSyncBtn('error');
+        showToast('שגיאה בהעלאה', 'error');
+    }
+}
 async function deleteFeedbackItem(index) {
     if (!confirm('למחוק את הפריט?')) return;
     try {
