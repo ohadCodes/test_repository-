@@ -18,7 +18,7 @@ let toastTimer = null;
 
 const STORAGE_KEY = 'tashbetz_entries';
 const OWNER_EMAIL = '012ohad@gmail.com';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwc9Z2g5wvDv1g55cGXq4r41C5K4sW7Ioy30mlUpISY9dNtdKyzVpcSjw9hikArws77/exec';
 const GDRIVE_CLIENT_ID = '361524127527-b5cvvltaj5btoitfe07lcf7053hp7vhl.apps.googleusercontent.com';
 const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
 
