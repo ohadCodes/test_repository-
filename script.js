@@ -1,5 +1,5 @@
 // ==============================================
-// script.js - גרסה מתוקנת (ללא template literals)
+// script.js - גרסה מתוקנת (כל הפונקציות קיימות)
 // ==============================================
 
 // משתנים גלובליים
@@ -39,7 +39,7 @@ function escapeHtml(str) {
 function highlightText(text, query) {
     if (!query || !text) return escapeHtml(text);
     const escaped = escapeHtml(text);
-    const escapedQ = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return escaped.replace(new RegExp(escapedQ, 'gi'), function(m) { return '<mark>' + m + '</mark>'; });
 }
 
@@ -79,14 +79,14 @@ async function loadEntriesFromJSON() {
         if (!response.ok) throw new Error('לא ניתן לטעון את קובץ ההגדרות');
         var data = await response.json();
         allEntries = data;
-        entries = data.slice(); // העתק
+        entries = data.slice();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         console.log('✅ נטענו ' + data.length + ' הגדרות מ-entries.json');
         updateStats();
         var splash = document.getElementById('splash');
         if (splash) {
             splash.classList.add('hide');
-            setTimeout(function() { splash.remove(); }, 500);
+            setTimeout(function() { if(splash) splash.remove(); }, 500);
         }
         renderCardsPaged('');
         return data;
@@ -112,14 +112,24 @@ function renderCardsPaged(query) {
     var empty = document.getElementById('emptyState');
     var info = document.getElementById('resultsInfo');
     if (!list) return;
+    
     var q = normalize(query || currentQuery || '');
-    var filtered = q ? entries.filter(function(e) { return normalize(e.definition || '').includes(q); }) : entries.slice();
+    var filtered = q ? entries.filter(function(e) { 
+        var text = '';
+        if (searchField === 'definition') text = normalize(e.definition || '');
+        else if (searchField === 'solution') text = normalize(e.solution || '');
+        else text = normalize(e.explanation || '');
+        return text.includes(q);
+    }) : entries.slice();
+    
     if (currentFilter === 'no-explanation') {
         filtered = filtered.filter(function(e) { return !e.explanation || !e.explanation.trim(); });
     } else if (currentFilter === 'no-solution') {
         filtered = filtered.filter(function(e) { return !e.solution || !e.solution.trim(); });
     }
+    
     filtered = filtered.slice().sort(hebrewSort);
+    
     if (entries.length === 0) {
         list.innerHTML = '';
         if (empty) empty.style.display = 'block';
@@ -127,16 +137,20 @@ function renderCardsPaged(query) {
         return;
     }
     if (empty) empty.style.display = 'none';
+    
     var start = entriesPage * 50;
     var pageFiltered = filtered.slice(start, start + 50);
+    
     if (info) {
         info.style.display = 'block';
         info.innerHTML = 'מוצגים <span class="highlight">' + pageFiltered.length + '</span> הגדרות מתוך: <span class="highlight">' + filtered.length + '</span>';
     }
+    
     if (pageFiltered.length === 0) {
         list.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><h3>לא נמצאו תוצאות</h3><p>נסה מילה אחרת או שנה סינון</p></div>';
         return;
     }
+    
     var html = '';
     for (var i = 0; i < pageFiltered.length; i++) {
         var e = pageFiltered[i];
@@ -159,7 +173,7 @@ function renderCardsPaged(query) {
     }
     list.innerHTML = html;
     if (start + 50 < filtered.length) {
-        list.innerHTML += '<div style="text-align:center;margin:20px 0;"><button class="btn" onclick="loadMoreEntries()">טען עוד (' + (filtered.length - (start + 50)) + ' נוספים)</button></div>';
+        list.innerHTML += '<div style="text-align:center;margin:20px 0;"><button class="btn btn-primary" onclick="loadMoreEntries()">טען עוד (' + (filtered.length - (start + 50)) + ' נוספים)</button></div>';
     }
 }
 
@@ -298,7 +312,9 @@ function renderDeleteList() {
     var list = document.getElementById('deleteList');
     var footer = document.getElementById('deleteFooter');
     if (!list) return;
-    var filtered = query ? entries.filter(function(e) { return normalize(e.definition).includes(query); }) : entries.slice();
+    var filtered = query ? entries.filter(function(e) { 
+        return (e.definition || '').toLowerCase().includes(query); 
+    }) : entries.slice();
     if (filtered.length === 0) {
         list.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><h3>לא נמצאו הגדרות</h3></div>';
         if (footer) footer.style.display = 'none';
@@ -335,15 +351,17 @@ function toggleDeleteSelect(id, el) {
 function updateDeleteFooter() {
     var footer = document.getElementById('deleteFooter');
     var count = document.getElementById('deleteCount');
-    if (footer && count) {
+    if (footer) {
         footer.style.display = selectedForDelete.size > 0 ? 'block' : 'none';
-        count.textContent = selectedForDelete.size;
+        if (count) count.textContent = selectedForDelete.size;
     }
 }
 
 function selectAllDelete() {
     var query = document.getElementById('deleteSearchInput')?.value.trim().toLowerCase() || '';
-    var filtered = query ? entries.filter(function(e) { return normalize(e.definition).includes(query); }) : entries.slice();
+    var filtered = query ? entries.filter(function(e) { 
+        return (e.definition || '').toLowerCase().includes(query); 
+    }) : entries.slice();
     for (var i = 0; i < filtered.length; i++) selectedForDelete.add(filtered[i].id);
     renderDeleteList();
 }
@@ -362,26 +380,6 @@ function confirmDeleteSelected() {
     renderDeleteList();
     renderCardsPaged(currentQuery);
     showToast('🗑️ נמחקו ' + count + ' הגדרות', 'success');
-}
-
-function openDelete(id) {
-    var e = entries.find(function(x) { return x.id === id; });
-    if (!e) return;
-    document.getElementById('delete-id').value = id;
-    document.getElementById('delete-preview').textContent = e.definition + ' → ' + e.solution;
-    var modal = document.getElementById('deleteModal');
-    if (modal) modal.classList.add('open');
-}
-
-function confirmDelete() {
-    var id = document.getElementById('delete-id')?.value;
-    if (id) {
-        entries = entries.filter(function(x) { return x.id !== id; });
-        saveDataLocal(entries);
-        closeModal();
-        renderCardsPaged(currentQuery);
-        showToast('🗑️ ההגדרה נמחקה', 'success');
-    }
 }
 
 function exportEntries() {
@@ -523,21 +521,20 @@ function processImportText(text) {
 }
 
 function exportUpdatedHTML() {
-    var blob = new Blob([document.documentElement.outerHTML], { type: 'text/html;charset=utf-8' });
+    var htmlContent = document.documentElement.outerHTML;
+    var scriptTag = '<script id="embedded-entries" type="application/json">' + JSON.stringify(entries) + '<\/script>';
+    if (htmlContent.includes('</body>')) {
+        htmlContent = htmlContent.replace('</body>', scriptTag + '</body>');
+    } else {
+        htmlContent += scriptTag;
+    }
+    var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'updated_riddles.html';
+    a.download = 'תשובות_להגדרות_היגיון.html';
     a.click();
     URL.revokeObjectURL(blob);
-    setTimeout(function() {
-        var jsonBlob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json;charset=utf-8' });
-        var jsonA = document.createElement('a');
-        jsonA.href = URL.createObjectURL(jsonBlob);
-        jsonA.download = 'entries.json';
-        jsonA.click();
-        URL.revokeObjectURL(jsonBlob);
-        showToast('✅ הורדו HTML ו-entries.json', 'success');
-    }, 500);
+    showToast('✅ הורד קובץ HTML מעודכן עם ' + entries.length + ' הגדרות', 'success');
 }
 
 function checkDuplicates() {
@@ -558,21 +555,21 @@ function checkDuplicates() {
         return;
     }
     var html = '<div class="results-info">נמצאו <span class="highlight">' + groups.length + '</span> קבוצות כפילויות' +
-        '<button class="btn-icon danger" onclick="deleteAllDupes()">🗑️ מחק כפילויות אוטומטית</button></div>';
+        '<button class="btn-icon danger" style="margin-right:10px;" onclick="deleteAllDupes()">🗑️ מחק כפילויות אוטומטית</button></div>';
     for (var g = 0; g < groups.length; g++) {
         var group = groups[g];
         html += '<div class="card" style="border-color:var(--danger);margin-bottom:14px;">' +
             '<div style="font-size:0.75rem;color:var(--danger);font-weight:700;margin-bottom:10px;">⚠️ ' + group.length + ' כניסות זהות</div>';
         for (var idx = 0; idx < group.length; idx++) {
             var e = group[idx];
-            html += '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">' +
+            html += '<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;position:relative;">' +
                 '<div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">' + escapeHtml(e.definition) + '</div>' +
                 '<div style="font-size:0.9rem;color:var(--success);">◈ ' + escapeHtml(e.solution) + '</div>' +
-                '<div style="margin-top:8px;">';
+                '<div style="margin-top:8px;display:flex;gap:6px;">';
             if (idx > 0) {
                 html += '<button class="btn-icon danger" onclick="deleteDupe(\'' + e.id + '\')">🗑️ מחק עותק זה</button>';
             } else {
-                html += '<span style="font-size:0.75rem;color:var(--text-muted);">← ישמר</span>';
+                html += '<span style="font-size:0.75rem;color:var(--text-muted);padding:4px 8px;">← ישמר</span>';
             }
             html += '</div></div>';
         }
@@ -606,6 +603,75 @@ function deleteAllDupes() {
     checkDuplicates();
     renderCardsPaged(currentQuery);
 }
+
+// ==============================================
+// הגדרות דומות (מיזוג בצד הלקוח)
+// ==============================================
+
+function loadSimilar() {
+    var container = document.getElementById('similarList');
+    if (!container) return;
+    
+    var groups = [];
+    var used = new Set();
+    
+    for (var i = 0; i < entries.length; i++) {
+        if (used.has(entries[i].id)) continue;
+        var group = [entries[i]];
+        var normDef = normalize(entries[i].definition);
+        for (var j = i + 1; j < entries.length; j++) {
+            if (used.has(entries[j].id)) continue;
+            var normOther = normalize(entries[j].definition);
+            if (normDef === normOther) {
+                group.push(entries[j]);
+                used.add(entries[j].id);
+            }
+        }
+        if (group.length > 1) {
+            groups.push(group);
+            used.add(entries[i].id);
+        }
+    }
+    
+    if (groups.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">✅</div><h3>לא נמצאו קבוצות דומות</h3></div>';
+        return;
+    }
+    
+    var html = '';
+    for (var g = 0; g < groups.length; g++) {
+        var group = groups[g];
+        html += '<div class="card">';
+        html += '<h4 style="margin-bottom:10px;">קבוצה ' + (g+1) + ' - ' + group.length + ' הגדרות</h4>';
+        html += '<ol style="padding-right:18px;">';
+        for (var k = 0; k < group.length; k++) {
+            html += '<li data-id="' + group[k].id + '" style="margin-bottom:6px;">' + escapeHtml(group[k].definition) + ' ' + (group[k].letters || '') + '</li>';
+        }
+        html += '</ol>';
+        var ids = group.map(function(item) { return item.id; });
+        html += '<button class="btn btn-primary" onclick="mergeGroup(\'' + JSON.stringify(ids) + '\')">מזג קבוצה</button>';
+        html += '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function mergeGroup(idsJson) {
+    var ids = JSON.parse(idsJson);
+    if (ids.length < 2) return;
+    var toKeep = ids[0];
+    var toRemove = ids.slice(1);
+    entries = entries.filter(function(e) {
+        return !toRemove.includes(e.id);
+    });
+    saveDataLocal(entries);
+    showToast('✅ מוזגו ' + (ids.length - 1) + ' הגדרות כפולות', 'success');
+    loadSimilar();
+    renderCardsPaged(currentQuery);
+}
+
+// ==============================================
+// שליחת הצעות ופידבקים ל-Google Apps Script
+// ==============================================
 
 function openSuggestionModal() {
     var ids = ['sug-definition', 'sug-letters', 'sug-solution', 'sug-explanation'];
@@ -687,7 +753,7 @@ async function submitFeedback() {
 }
 
 // ==============================================
-// ניהול מנהל - התחברות גוגל
+// ניהול מנהל - התחברות גוגל וסנכרון
 // ==============================================
 
 function updateOwnerUI() {
@@ -697,12 +763,10 @@ function updateOwnerUI() {
     }
     var suggestBtn = document.getElementById('suggest-btn');
     var feedbackBtn = document.getElementById('feedback-btn');
+    var logoutBtn = document.getElementById('logoutBtn');
     if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
     if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
-    var ownerOnly = document.querySelectorAll('.owner-only');
-    for (var i = 0; i < ownerOnly.length; i++) {
-        ownerOnly[i].style.display = isOwner ? 'inline-block' : 'none';
-    }
+    if (logoutBtn) logoutBtn.style.display = isOwner ? 'inline-block' : 'none';
 }
 
 function updateSyncBtn(state) {
@@ -772,9 +836,6 @@ function logout() {
     localStorage.removeItem('g_user_email');
     updateSyncBtn('disconnected');
     updateOwnerUI();
-    if (window.google && google.accounts && google.accounts.id) {
-        try { google.accounts.id.disableAutoSelect(); } catch(e) {}
-    }
     showToast('התנתקת, טוען מחדש נתוני אורח...', '');
     fetch('entries.json')
         .then(function(response) { return response.json(); })
@@ -928,27 +989,28 @@ async function renderFeedbackList() {
     var improvEl = document.getElementById('feedbackListImprovements');
     if (!bugsEl || !improvEl) return;
     try {
-        var data = await fetch(APPS_SCRIPT_URL + '?action=getFeedback&_t=' + Date.now()).then(function(r) { return r.json(); });
+        var res = await fetch(APPS_SCRIPT_URL + '?action=getFeedback&_t=' + Date.now());
+        var data = await res.json();
         var bugs = [];
         var improvements = [];
         for (var i = 0; i < data.length; i++) {
             var item = data[i];
-            var enriched = { text: item.text, type: item.type, _idx: i };
-            if (item.type === 'improvement') improvements.push(enriched);
-            else bugs.push(enriched);
+            if (item.type === 'improvement') improvements.push(item);
+            else bugs.push(item);
         }
-        function renderCard(item) {
+        function renderCard(item, idx) {
             var btnHtml = '';
             if (item.type === 'improvement') {
-                btnHtml = '<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="approveFeedbackItem(' + item._idx + ')">אישור</button>';
+                btnHtml = '<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="approveFeedbackItem(' + idx + ')">אישור</button>';
             }
-            var deleteBtn = '<button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(244,63,94,0.1); color:var(--danger);" onclick="deleteFeedbackItem(' + item._idx + ')">מחיקה</button>';
+            var deleteBtn = '<button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(244,63,94,0.1); color:var(--danger);" onclick="deleteFeedbackItem(' + idx + ')">מחיקה</button>';
             return '<div class="card" style="margin-bottom:8px; padding:12px;">' +
                 '<div style="font-size:0.85rem;margin-bottom:8px;">' + escapeHtml(item.text) + '</div>' +
                 '<div style="display:flex; gap:8px; justify-content: flex-end;">' + btnHtml + deleteBtn + '</div></div>';
         }
-        bugsEl.innerHTML = bugs.length ? bugs.map(renderCard).join('') : '<div style="color:var(--text-dim);text-align:center;padding:16px;">אין פריטים</div>';
-        improvEl.innerHTML = improvements.length ? improvements.map(renderCard).join('') : '<div style="color:var(--text-dim);text-align:center;padding:16px;">אין פריטים</div>';
+        bugsEl.innerHTML = bugs.length ? bugs.map(function(item, idx) { return renderCard(item, idx); }).join('') : '<div style="color:var(--text-dim);text-align:center;padding:16px;">אין פריטים</div>';
+        improvEl.innerHTML = improvements.length ? improvements.map(function(item, idx) { return renderCard(item, idx); }).join('') : '<div style="color:var(--text-dim);text-align:center;padding:16px;">אין פריטים</div>';
+        window.currentFeedback = data;
     } catch(e) {
         bugsEl.innerHTML = '<div style="color:var(--danger);text-align:center;padding:16px;">שגיאה בטעינה</div>';
         improvEl.innerHTML = '<div style="color:var(--danger);text-align:center;padding:16px;">שגיאה בטעינה</div>';
@@ -957,8 +1019,9 @@ async function renderFeedbackList() {
 
 async function approveFeedbackItem(index) {
     try {
-        var res = await fetch(APPS_SCRIPT_URL + '?action=getFeedbackItem&index=' + index);
-        var item = await res.json();
+        var feedback = window.currentFeedback;
+        if (!feedback || !feedback[index]) return;
+        var item = feedback[index];
         if (item && item.text) {
             var entry = parseEntryLine(item.text);
             if (entry) {
@@ -990,61 +1053,12 @@ async function deleteFeedbackItem(index) {
 }
 
 // ==============================================
-// הגדרות דומות (admin)
-// ==============================================
-
-async function loadSimilar() {
-    var container = document.getElementById('similarList');
-    if (!container) return;
-    container.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען קבוצות...</div>';
-    try {
-        var groups = await fetch(APPS_SCRIPT_URL + '?action=getSimilar&_t=' + Date.now()).then(function(r) { return r.json(); });
-        if (!Array.isArray(groups) || groups.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">✅</div><h3>לא נמצאו קבוצות דומות</h3></div>';
-            return;
-        }
-        container.innerHTML = '';
-        for (var i = 0; i < groups.length; i++) {
-            var group = groups[i];
-            var div = document.createElement('div');
-            div.className = 'card';
-            var html = '<h4 style="margin-bottom:10px;">קבוצה ' + (i+1) + ' - ' + group.length + ' הגדרות</h4><ol style="padding-right:18px;">';
-            for (var j = 0; j < group.length; j++) {
-                html += '<li style="margin-bottom:6px;">' + escapeHtml(group[j].definition) + ' ' + escapeHtml(group[j].letters || '') + '</li>';
-            }
-            html += '</ol>';
-            var ids = group.map(function(g) { return g.id; });
-            var idsEncoded = encodeURIComponent(JSON.stringify(ids));
-            html += '<button class="btn btn-primary" onclick="mergeGroup(\'' + idsEncoded + '\')">מזג קבוצה</button>';
-            div.innerHTML = html;
-            container.appendChild(div);
-        }
-    } catch(e) {
-        container.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינת קבוצות דומות</div>';
-    }
-}
-
-async function mergeGroup(idsEncoded) {
-    try {
-        var ids = JSON.parse(decodeURIComponent(idsEncoded));
-        var data = await fetch(APPS_SCRIPT_URL + '?action=merge&ids=' + encodeURIComponent(JSON.stringify(ids))).then(function(r) { return r.json(); });
-        if (data && data.ok) {
-            showToast('הקבוצה מוזגה בהצלחה!', 'success');
-            loadSimilar();
-        } else {
-            showToast('שגיאה במיזוג', 'error');
-        }
-    } catch(e) {
-        showToast('שגיאה במיזוג', 'error');
-    }
-}
-
-// ==============================================
 // אתחול הדף
 // ==============================================
 
 document.addEventListener('DOMContentLoaded', function() {
     loadEntriesFromJSON();
+    
     var savedToken = localStorage.getItem('g_access_token');
     var savedEmail = localStorage.getItem('g_user_email');
     if (savedToken && savedEmail === OWNER_EMAIL) {
@@ -1060,6 +1074,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateOwnerUI();
         updateSyncBtn('disconnected');
     }
+    
     var searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
@@ -1070,12 +1085,14 @@ document.addEventListener('DOMContentLoaded', function() {
             renderCardsPaged(currentQuery);
         });
     }
+    
     var overlays = document.querySelectorAll('.modal-overlay');
     for (var i = 0; i < overlays.length; i++) {
         overlays[i].addEventListener('click', function(e) {
             if (e.target === this) closeModal();
         });
     }
+    
     var importZone = document.getElementById('importZone');
     if (importZone) {
         importZone.addEventListener('dragover', function(e) { e.preventDefault(); importZone.classList.add('drag-over'); });
@@ -1091,11 +1108,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
     if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(r => r.unregister());
-    console.log('Service Worker unregistered');
-  });
-}
-    switchTab('search');
-});
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations
