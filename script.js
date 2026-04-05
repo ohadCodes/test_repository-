@@ -894,34 +894,75 @@ async function renderApprovalsList() {
     const list = document.getElementById('approvalsList');
     if (!list) return;
     list.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען...</div>';
-    
     try {
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=getSuggestions&_t=${Date.now()}`).then(r => r.json());
+        const response = await fetch(APPS_SCRIPT_URL + '?action=getSuggestions&_t=' + Date.now());
+        const data = await response.json();
         if (!Array.isArray(data) || data.length === 0) {
             list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>אין הצעות ממתינות</h3></div>';
             const tabApprovals = document.getElementById('tab-approvals');
             if (tabApprovals) tabApprovals.textContent = '📬 הצעות';
             return;
         }
-        
         window.currentSuggestions = data;
         const tabApprovals = document.getElementById('tab-approvals');
-        if (tabApprovals) tabApprovals.innerHTML = `📬 הצעות <span class="count-badge">${data.length}</span>`;
-        
-        list.innerHTML = data.map(s => `
-    <div class="approval-card">
-        <div class="approval-card-def">📝 ${escapeHtml(s.definition)}${s.letters ? ' (' + escapeHtml(s.letters) + ')' : ''}</div>
-        ${s.solution ? `<div class="approval-card-sol">◈ ${escapeHtml(s.solution)}</div>` : ''}
-        ${s.explanation ? `<div class="approval-card-exp">💡 ${escapeHtml(s.explanation)}</div>` : ''}
-        <div class="approval-actions">
-            <button class="btn-approve" onclick="approveSuggestion('${s.id}')">✅ אשר והוסף</button>
-            <button class="btn-reject" onclick="rejectSuggestion('${s.id}')">❌ דחה</button>
-        </div>
-    </div>
-`).join('');
-        `).join('');
+        if (tabApprovals) tabApprovals.innerHTML = '📬 הצעות <span class="count-badge">' + data.length + '</span>';
+        let html = '';
+        for (let i = 0; i < data.length; i++) {
+            const s = data[i];
+            html += '<div class="approval-card">';
+            html += '<div class="approval-card-def">📝 ' + escapeHtml(s.definition) + (s.letters ? ' (' + escapeHtml(s.letters) + ')' : '') + '</div>';
+            if (s.solution) html += '<div class="approval-card-sol">◈ ' + escapeHtml(s.solution) + '</div>';
+            if (s.explanation) html += '<div class="approval-card-exp">💡 ' + escapeHtml(s.explanation) + '</div>';
+            html += '<div class="approval-actions">';
+            html += '<button class="btn-approve" onclick="approveSuggestion(\'' + s.id + '\')">✅ אשר והוסף</button>';
+            html += '<button class="btn-reject" onclick="rejectSuggestion(\'' + s.id + '\')">❌ דחה</button>';
+            html += '</div></div>';
+        }
+        list.innerHTML = html;
     } catch(e) {
         list.innerHTML = '<div style="color:var(--danger);padding:20px;text-align:center;">שגיאה בטעינה</div>';
+    }
+}
+
+async function approveSuggestion(id) {
+    try {
+        await fetch(APPS_SCRIPT_URL + '?action=deleteSuggestion&id=' + id);
+        const suggestions = window.currentSuggestions || [];
+        let suggestion = null;
+        for (let i = 0; i < suggestions.length; i++) {
+            if (suggestions[i].id === id) {
+                suggestion = suggestions[i];
+                break;
+            }
+        }
+        if (suggestion) {
+            const entry = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+                definition: suggestion.definition,
+                solution: suggestion.solution || '',
+                letters: suggestion.letters || '',
+                type: suggestion.type || '',
+                explanation: suggestion.explanation || '',
+                createdAt: Date.now()
+            };
+            entries.unshift(entry);
+            saveDataLocal(entries);
+            renderCardsPaged(currentQuery);
+        }
+        await renderApprovalsList();
+        showToast('✅ ההצעה אושרה ונוספה', 'success');
+    } catch(e) {
+        showToast('שגיאה באישור ההצעה', 'error');
+    }
+}
+
+async function rejectSuggestion(id) {
+    try {
+        await fetch(APPS_SCRIPT_URL + '?action=deleteSuggestion&id=' + id);
+        await renderApprovalsList();
+        showToast('❌ ההצעה נדחתה', 'success');
+    } catch(e) {
+        showToast('שגיאה בדחיית ההצעה', 'error');
     }
 }
 
