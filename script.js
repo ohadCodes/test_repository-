@@ -1091,5 +1091,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(r => r.unregister());
+    console.log('Service Worker unregistered');
+  });
+}
     switchTab('search');
 });
