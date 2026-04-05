@@ -1,10 +1,9 @@
+// ==============================================
 // משתנים גלובליים
-let allEntries = [];
+// ==============================================
 let entries = [];
 let currentQuery = '';
 let currentFilter = 'all';
-let searchField = 'definition';
-let entriesPage = 0;
 let isOwner = false;
 let gAccessToken = null;
 let gUserEmail = null;
@@ -12,19 +11,15 @@ let selectedForDelete = new Set();
 let feedbackType = 'bug';
 let toastTimer = null;
 
-const STORAGE_KEY = 'tashbetz_entries';
 const OWNER_EMAIL = '012ohad@gmail.com';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec';
-const GDRIVE_CLIENT_ID = '361524127527-b5cvvltaj5btoitfe07lcf7053hp7vhl.apps.googleusercontent.com';
-const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
+const STORAGE_KEY = 'tashbetz_entries';
 
 // ==============================================
-// פונקציות עזר בסיסיות
+// פונקציות עזר
 // ==============================================
-
 function normalize(str) {
     if (typeof str !== 'string' || !str) return '';
-    return str.replace(/"/g, '').replace(/'/g, '').replace(/\s+/g, ' ').replace(/[.,?!]/g, '').trim();
+    return str.replace(/[^\u0590-\u05FFa-zA-Z0-9\s]/g, '').trim();
 }
 
 function escapeHtml(str) {
@@ -65,46 +60,39 @@ function hebrewSort(a, b) {
 }
 
 // ==============================================
-// טעינת נתונים מ-entries.json
+// טעינת נתונים מ-entries.json (כל ההגדרות בפעם אחת)
 // ==============================================
-
 async function loadEntriesFromJSON() {
     try {
         const response = await fetch('entries.json');
         if (!response.ok) throw new Error('לא ניתן לטעון את קובץ ההגדרות');
         const data = await response.json();
         
-        allEntries = data;
         entries = [...data];
-        
-        // שמירה ב-LocalStorage
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         
         console.log(`✅ נטענו ${data.length} הגדרות מ-entries.json`);
         updateStats();
         
-        // הסתרת מסך הספלאש
+        // הסתרת מסך ספלאש
         const splash = document.getElementById('splash');
         if (splash) {
             splash.classList.add('hide');
             setTimeout(() => splash.remove(), 500);
         }
         
-        // רינדור הכרטיסים
-        renderCardsPaged('');
-        
+        renderAllCards();
         return data;
     } catch (error) {
         console.error('❌ שגיאה בטעינת הגדרות:', error);
         
-        // ניסיון לטעון מ-LocalStorage כגיבוי
+        // ניסיון לטעון מ-LocalStorage
         const savedData = localStorage.getItem(STORAGE_KEY);
         if (savedData) {
-            const parsed = JSON.parse(savedData);
-            entries = parsed;
-            console.log(`⚠️ נטענו ${parsed.length} הגדרות מ-LocalStorage (גיבוי)`);
-            renderCardsPaged('');
-            return parsed;
+            entries = JSON.parse(savedData);
+            console.log(`⚠️ נטענו ${entries.length} הגדרות מ-LocalStorage (גיבוי)`);
+            renderAllCards();
+            return entries;
         }
         
         const cardsList = document.getElementById('cardsList');
@@ -122,27 +110,30 @@ async function loadEntriesFromJSON() {
 }
 
 // ==============================================
-// רינדור כרטיסים
+// תצוגת כל ההגדרות בפעם אחת (ללא פגינציה)
 // ==============================================
-
-function renderCardsPaged(query) {
+function renderAllCards() {
     const list = document.getElementById('cardsList');
     const empty = document.getElementById('emptyState');
     const info = document.getElementById('resultsInfo');
     
     if (!list) return;
     
-    const q = normalize(query || currentQuery || '');
+    // חיפוש
+    const q = normalize(currentQuery);
     let filtered = q ? entries.filter(e => normalize(e.definition || '').includes(q)) : [...entries];
     
+    // סינון
     if (currentFilter === 'no-explanation') {
         filtered = filtered.filter(e => !e.explanation || !e.explanation.trim());
     } else if (currentFilter === 'no-solution') {
         filtered = filtered.filter(e => !e.solution || !e.solution.trim());
     }
     
+    // מיון
     filtered = filtered.slice().sort(hebrewSort);
     
+    // מצב ריק
     if (entries.length === 0) {
         list.innerHTML = '';
         if (empty) empty.style.display = 'block';
@@ -152,56 +143,45 @@ function renderCardsPaged(query) {
     
     if (empty) empty.style.display = 'none';
     
-    const start = entriesPage * 50;
-    const pageFiltered = filtered.slice(start, start + 50);
-    
+    // מידע
     if (info) {
         info.style.display = 'block';
-        info.innerHTML = `מוצגים <span class="highlight">${pageFiltered.length}</span> הגדרות מתוך: <span class="highlight">${filtered.length}</span>`;
+        info.innerHTML = `מוצגות <span class="highlight">${filtered.length}</span> הגדרות מתוך: <span class="highlight">${entries.length}</span>`;
     }
     
-    if (pageFiltered.length === 0) {
+    // אין תוצאות חיפוש
+    if (filtered.length === 0) {
         list.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>לא נמצאו תוצאות</h3><p>נסה מילה אחרת או שנה סינון</p></div>`;
         return;
     }
     
-    list.innerHTML = pageFiltered.map((e, idx) => `
-        <div class="card" style="animation-delay:${Math.min(idx * 0.03, 0.3)}s">
+    // הצגת כל ההגדרות בפעם אחת
+    list.innerHTML = filtered.map((e, idx) => `
+        <div class="card" style="animation-delay:${Math.min(idx * 0.01, 0.3)}s">
             <div class="card-header">
-                <div class="card-definition">${highlightText(e.definition || '', query || '')}</div>
+                <div class="card-definition">${highlightText(e.definition || '', currentQuery)}</div>
                 <div class="card-meta">
                     ${e.letters ? `<span class="tag tag-letters">${escapeHtml(e.letters)}</span>` : ''}
                     ${e.type ? `<span class="tag tag-type">${escapeHtml(e.type)}</span>` : ''}
                 </div>
             </div>
             <div class="card-solution">◈ ${e.solution ? escapeHtml(e.solution) : '<span style="color:var(--danger);">ללא תשובה</span>'}</div>
-            ${e.explanation ? `<div class="card-divider"></div><div class="card-explanation">${escapeHtml(e.explanation)}</div>` : ''}
+            ${e.explanation ? `<div class="card-divider"></div><div class="card-explanation">💡 ${escapeHtml(e.explanation)}</div>` : ''}
             ${isOwner ? `<div class="card-actions"><button class="btn-icon" onclick="openEdit('${e.id}')">✏️ עריכה</button></div>` : ''}
         </div>
     `).join('');
-    
-    if (start + 50 < filtered.length) {
-        list.innerHTML += `<div style="text-align:center;margin:20px 0;"><button class="btn" onclick="loadMoreEntries()">טען עוד (${filtered.length - (start + 50)} נוספים)</button></div>`;
-    }
-}
-
-function loadMoreEntries() {
-    entriesPage++;
-    renderCardsPaged(currentQuery);
 }
 
 // ==============================================
 // חיפוש וסינון
 // ==============================================
-
 function onSearchFieldChange() {
     searchField = document.getElementById('searchField').value;
     const placeholders = { definition: 'חפש הגדרה...', solution: 'חפש פתרון...', explanation: 'חפש רמז...' };
     const input = document.getElementById('searchInput');
     if (input) input.placeholder = placeholders[searchField];
     currentQuery = input ? input.value.trim() : '';
-    entriesPage = 0;
-    renderCardsPaged(currentQuery);
+    renderAllCards();
 }
 
 function clearSearch() {
@@ -212,8 +192,7 @@ function clearSearch() {
     }
     const clearBtn = document.getElementById('clearSearch');
     if (clearBtn) clearBtn.style.display = 'none';
-    entriesPage = 0;
-    renderCardsPaged('');
+    renderAllCards();
     if (input) input.focus();
 }
 
@@ -222,35 +201,26 @@ function setFilter(filter) {
     document.querySelectorAll('.filter-btn[id^="filter"]').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById(`filter-${filter}`);
     if (activeBtn) activeBtn.classList.add('active');
-    entriesPage = 0;
-    renderCardsPaged(currentQuery);
+    renderAllCards();
 }
 
 // ==============================================
 // מעבר בין טאבים
 // ==============================================
-
 function switchTab(tabId) {
-    // הסרת active מכל הכפתורים והתצוגות
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
     
-    // הפעלת הכפתור הנבחר
     const selectedBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
     if (selectedBtn) selectedBtn.classList.add('active');
     
-    // הפעלת התצוגה הנבחרת
     const selectedView = document.getElementById(`view-${tabId}`);
     if (selectedView) selectedView.classList.add('active');
     
-    // טיפול מיוחד בטאבים מסוימים
     const searchWrap = document.getElementById('searchWrap');
     if (searchWrap) searchWrap.style.display = tabId === 'search' ? 'flex' : 'none';
     
-    if (tabId === 'search') {
-        entriesPage = 0;
-        renderCardsPaged(currentQuery);
-    }
+    if (tabId === 'search') renderAllCards();
     if (tabId === 'delete') renderDeleteList();
     if (tabId === 'feedback' && isOwner) renderFeedbackList();
     if (tabId === 'approvals' && isOwner) renderApprovalsList();
@@ -260,7 +230,6 @@ function switchTab(tabId) {
 // ==============================================
 // הוספת הגדרה
 // ==============================================
-
 function addEntry() {
     const definition = document.getElementById('f-definition')?.value.trim();
     const solution = document.getElementById('f-solution')?.value.trim();
@@ -284,7 +253,6 @@ function addEntry() {
         createdAt: Date.now()
     };
     
-    // ניקוי שדות
     ['f-definition', 'f-solution', 'f-letters', 'f-type', 'f-explanation'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -299,7 +267,6 @@ function addEntry() {
 // ==============================================
 // עריכת הגדרה
 // ==============================================
-
 function openEdit(id) {
     const e = entries.find(x => x.id === id);
     if (!e) return;
@@ -344,7 +311,7 @@ function saveEdit() {
     
     saveDataLocal(entries);
     closeModal();
-    renderCardsPaged(currentQuery);
+    renderAllCards();
     showToast('✅ ההגדרה עודכנה', 'success');
 }
 
@@ -355,7 +322,6 @@ function closeModal() {
 // ==============================================
 // מחיקת הגדרות
 // ==============================================
-
 function renderDeleteList() {
     const query = document.getElementById('deleteSearchInput')?.value.trim().toLowerCase() || '';
     const list = document.getElementById('deleteList');
@@ -401,12 +367,8 @@ function updateDeleteFooter() {
     const footer = document.getElementById('deleteFooter');
     const count = document.getElementById('deleteCount');
     if (footer && count) {
-        if (selectedForDelete.size > 0) {
-            footer.style.display = 'block';
-            count.textContent = selectedForDelete.size;
-        } else {
-            footer.style.display = 'none';
-        }
+        footer.style.display = selectedForDelete.size > 0 ? 'block' : 'none';
+        count.textContent = selectedForDelete.size;
     }
 }
 
@@ -429,13 +391,35 @@ function confirmDeleteSelected() {
     selectedForDelete.clear();
     saveDataLocal(entries);
     renderDeleteList();
+    renderAllCards();
     showToast(`🗑️ נמחקו ${count} הגדרות`, 'success');
 }
 
-// ==============================================
-// ייצוא
-// ==============================================
+function openDelete(id) {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    const deleteId = document.getElementById('delete-id');
+    const deletePreview = document.getElementById('delete-preview');
+    if (deleteId) deleteId.value = id;
+    if (deletePreview) deletePreview.textContent = `${e.definition} → ${e.solution}`;
+    const modal = document.getElementById('deleteModal');
+    if (modal) modal.classList.add('open');
+}
 
+function confirmDelete() {
+    const id = document.getElementById('delete-id')?.value;
+    if (id) {
+        entries = entries.filter(x => x.id !== id);
+        saveDataLocal(entries);
+        closeModal();
+        renderAllCards();
+        showToast('🗑️ ההגדרה נמחקה', 'success');
+    }
+}
+
+// ==============================================
+// ייבוא וייצוא
+// ==============================================
 function exportEntries() {
     if (entries.length === 0) {
         showToast('אין הגדרות לייצוא', 'error');
@@ -453,96 +437,11 @@ function exportEntries() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `תשובות_להגדרות_היגיון_${new Date().toLocaleDateString('he-IL').replace(/\//g, '-')}.txt`;
+    a.download = `definitions_${new Date().toLocaleDateString('he-IL').replace(/\//g, '-')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     showToast(`✅ יוצאו ${entries.length} הגדרות`, 'success');
 }
-
-function exportUpdatedHTML() {
-    const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'updated_riddles.html';
-    a.click();
-    URL.revokeObjectURL(blob);
-}
-
-// ==============================================
-// בדיקת כפילויות
-// ==============================================
-
-function checkDuplicates() {
-    const seen = {};
-    const groups = [];
-    
-    for (const e of entries) {
-        const key = normalize(e.definition);
-        if (!seen[key]) seen[key] = [];
-        seen[key].push(e);
-    }
-    
-    for (const key in seen) {
-        if (seen[key].length > 1) groups.push(seen[key]);
-    }
-    
-    const container = document.getElementById('dupesResult');
-    if (!container) return;
-    
-    if (groups.length === 0) {
-        container.innerHTML = `<div class="empty-state"><div class="icon">✅</div><h3>אין כפילויות!</h3><p>כל ${entries.length} ההגדרות ייחודיות</p></div>`;
-        return;
-    }
-    
-    let html = `<div class="results-info">נמצאו <span class="highlight">${groups.length}</span> קבוצות כפילויות
-        <button class="btn-icon danger" onclick="deleteAllDupes()">🗑️ מחק כפילויות אוטומטית</button>
-    </div>`;
-    
-    for (const group of groups) {
-        html += `<div class="card" style="border-color:var(--danger);margin-bottom:14px;">
-            <div style="font-size:0.75rem;color:var(--danger);font-weight:700;margin-bottom:10px;">⚠️ ${group.length} כניסות זהות</div>`;
-        group.forEach((e, idx) => {
-            html += `<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">
-                <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">${escapeHtml(e.definition)}</div>
-                <div style="font-size:0.9rem;color:var(--success);">◈ ${escapeHtml(e.solution)}</div>
-                <div style="margin-top:8px;">
-                    ${idx > 0 ? `<button class="btn-icon danger" onclick="deleteDupe('${e.id}')">🗑️ מחק עותק זה</button>` : `<span style="font-size:0.75rem;color:var(--text-muted);">← ישמר</span>`}
-                </div>
-            </div>`;
-        });
-        html += `</div>`;
-    }
-    
-    container.innerHTML = html;
-}
-
-function deleteDupe(id) {
-    entries = entries.filter(e => e.id !== id);
-    saveDataLocal(entries);
-    showToast('🗑️ הכפילות נמחקה', 'success');
-    checkDuplicates();
-}
-
-function deleteAllDupes() {
-    const seen = {};
-    const toKeep = [];
-    for (const e of entries) {
-        const key = normalize(e.definition);
-        if (!seen[key]) {
-            seen[key] = true;
-            toKeep.push(e);
-        }
-    }
-    const removed = entries.length - toKeep.length;
-    entries = toKeep;
-    saveDataLocal(entries);
-    showToast(`✅ נמחקו ${removed} כפילויות`, 'success');
-    checkDuplicates();
-}
-
-// ==============================================
-// ייבוא
-// ==============================================
 
 function handleFileImport(event) {
     const file = event.target.files[0];
@@ -661,10 +560,91 @@ function processImportText(text) {
     }
 }
 
+function exportUpdatedHTML() {
+    const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'updated_riddles.html';
+    a.click();
+    URL.revokeObjectURL(blob);
+}
+
+// ==============================================
+// בדיקת כפילויות
+// ==============================================
+function checkDuplicates() {
+    const seen = {};
+    const groups = [];
+    
+    for (const e of entries) {
+        const key = normalize(e.definition);
+        if (!seen[key]) seen[key] = [];
+        seen[key].push(e);
+    }
+    
+    for (const key in seen) {
+        if (seen[key].length > 1) groups.push(seen[key]);
+    }
+    
+    const container = document.getElementById('dupesResult');
+    if (!container) return;
+    
+    if (groups.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="icon">✅</div><h3>אין כפילויות!</h3><p>כל ${entries.length} ההגדרות ייחודיות</p></div>`;
+        return;
+    }
+    
+    let html = `<div class="results-info">נמצאו <span class="highlight">${groups.length}</span> קבוצות כפילויות
+        <button class="btn-icon danger" onclick="deleteAllDupes()">🗑️ מחק כפילויות אוטומטית</button>
+    </div>`;
+    
+    for (const group of groups) {
+        html += `<div class="card" style="border-color:var(--danger);margin-bottom:14px;">
+            <div style="font-size:0.75rem;color:var(--danger);font-weight:700;margin-bottom:10px;">⚠️ ${group.length} כניסות זהות</div>`;
+        group.forEach((e, idx) => {
+            html += `<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">
+                <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">${escapeHtml(e.definition)}</div>
+                <div style="font-size:0.9rem;color:var(--success);">◈ ${escapeHtml(e.solution)}</div>
+                <div style="margin-top:8px;">
+                    ${idx > 0 ? `<button class="btn-icon danger" onclick="deleteDupe('${e.id}')">🗑️ מחק עותק זה</button>` : `<span style="font-size:0.75rem;color:var(--text-muted);">← ישמר</span>`}
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+    }
+    
+    container.innerHTML = html;
+}
+
+function deleteDupe(id) {
+    entries = entries.filter(e => e.id !== id);
+    saveDataLocal(entries);
+    showToast('🗑️ הכפילות נמחקה', 'success');
+    checkDuplicates();
+    renderAllCards();
+}
+
+function deleteAllDupes() {
+    const seen = {};
+    const toKeep = [];
+    for (const e of entries) {
+        const key = normalize(e.definition);
+        if (!seen[key]) {
+            seen[key] = true;
+            toKeep.push(e);
+        }
+    }
+    const removed = entries.length - toKeep.length;
+    entries = toKeep;
+    saveDataLocal(entries);
+    showToast(`✅ נמחקו ${removed} כפילויות`, 'success');
+    checkDuplicates();
+    renderAllCards();
+}
+
 // ==============================================
 // הצעות הגדרה
 // ==============================================
-
 function openSuggestionModal() {
     ['sug-definition', 'sug-letters', 'sug-solution', 'sug-explanation'].forEach(id => {
         const el = document.getElementById(id);
@@ -695,9 +675,8 @@ async function submitSuggestion() {
     showToast('⏳ שולח הצעה...', '');
     
     try {
-        const url = `${APPS_SCRIPT_URL}?action=submitSuggestion&def=${encodeURIComponent(definition)}&sol=${encodeURIComponent(solution || '')}&letters=${encodeURIComponent(letters || '')}&exp=${encodeURIComponent(explanation || '')}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const response = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=submitSuggestion&def=' + encodeURIComponent(definition) + '&sol=' + encodeURIComponent(solution || '') + '&letters=' + encodeURIComponent(letters || '') + '&exp=' + encodeURIComponent(explanation || ''));
+        const data = await response.json();
         if (data.ok) showToast('✅ ההצעה נשלחה, תודה!', 'success');
         else showToast('שגיאה בשליחה', 'error');
     } catch(e) {
@@ -708,7 +687,6 @@ async function submitSuggestion() {
 // ==============================================
 // פידבק
 // ==============================================
-
 function openFeedbackModal() {
     const textarea = document.getElementById('feedback-text');
     if (textarea) textarea.value = '';
@@ -740,9 +718,8 @@ async function submitFeedback() {
     closeFeedbackModal();
     showToast('שולח פידבק...', '');
     try {
-        const url = `${APPS_SCRIPT_URL}?action=submitFeedback&type=${encodeURIComponent(feedbackType)}&text=${encodeURIComponent(text)}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const response = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=submitFeedback&type=' + encodeURIComponent(feedbackType) + '&text=' + encodeURIComponent(text));
+        const data = await response.json();
         if (data.ok) showToast('✅ הפידבק התקבל, תודה!', 'success');
         else showToast('שגיאה בשליחת הפידבק', 'error');
     } catch(e) {
@@ -753,7 +730,6 @@ async function submitFeedback() {
 // ==============================================
 // ניהול מנהל - התחברות גוגל
 // ==============================================
-
 function updateOwnerUI() {
     document.querySelectorAll('.owner-only').forEach(el => {
         el.style.display = isOwner ? 'inline-block' : 'none';
@@ -790,8 +766,8 @@ function updateSyncBtn(state) {
 
 function signInGoogle() {
     const client = google.accounts.oauth2.initTokenClient({
-        client_id: GDRIVE_CLIENT_ID,
-        scope: GDRIVE_SCOPE,
+        client_id: '361524127527-b5cvvltaj5btoitfe07lcf7053hp7vhl.apps.googleusercontent.com',
+        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
         callback: async (resp) => {
             if (resp.error) {
                 showToast('שגיאה בהתחברות', 'error');
@@ -806,7 +782,7 @@ function signInGoogle() {
                 const u = await info.json();
                 gUserEmail = u.email;
                 localStorage.setItem('g_user_email', gUserEmail);
-                isOwner = gUserEmail === OWNER_EMAIL;
+                isOwner = gUserEmail === '012ohad@gmail.com';
                 if (!isOwner) {
                     showToast('רק המנהל יכול להתחבר', 'error');
                     gAccessToken = null;
@@ -846,13 +822,13 @@ async function syncWithDrive() {
     if (!isOwner) return;
     updateSyncBtn('syncing');
     try {
-        const url = `${APPS_SCRIPT_URL}?action=getEntries&_t=${Date.now()}`;
+        const url = 'https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=getEntries&_t=' + Date.now();
         const res = await fetch(url);
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
             entries = data;
             saveDataLocal(entries);
-            renderCardsPaged(currentQuery);
+            renderAllCards();
             showToast('✅ הנתונים סונכרנו מהענן', 'success');
         }
         updateSyncBtn('connected');
@@ -866,14 +842,13 @@ async function syncWithDrive() {
 // ==============================================
 // ניהול הצעות (admin)
 // ==============================================
-
 async function renderApprovalsList() {
     const list = document.getElementById('approvalsList');
     if (!list) return;
     list.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען...</div>';
     
     try {
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=getSuggestions&_t=${Date.now()}`).then(r => r.json());
+        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=getSuggestions&_t=' + Date.now()).then(r => r.json());
         if (!Array.isArray(data) || data.length === 0) {
             list.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>אין הצעות ממתינות</h3></div>';
             const tabApprovals = document.getElementById('tab-approvals');
@@ -918,9 +893,8 @@ async function approveSuggestion(index) {
     
     entries.unshift(entry);
     saveDataLocal(entries);
-    renderCardsPaged(currentQuery);
+    renderAllCards();
     
-    // הסרה מהרשימה המקומית
     suggestions.splice(index, 1);
     window.currentSuggestions = suggestions;
     renderApprovalsList();
@@ -938,7 +912,6 @@ async function rejectSuggestion(index) {
 // ==============================================
 // פידבקים למנהל
 // ==============================================
-
 async function renderFeedbackList() {
     const bugsEl = document.getElementById('feedbackListBugs');
     const improvEl = document.getElementById('feedbackListImprovements');
@@ -946,7 +919,7 @@ async function renderFeedbackList() {
     if (!bugsEl || !improvEl) return;
     
     try {
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=getFeedback&_t=${Date.now()}`).then(r => r.json());
+        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=getFeedback&_t=' + Date.now()).then(r => r.json());
         const bugs = [];
         const improvements = [];
         
@@ -976,7 +949,7 @@ async function renderFeedbackList() {
 
 async function approveFeedbackItem(index) {
     try {
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=approveFeedback&index=${index}`).then(r => r.json());
+        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=approveFeedback&index=' + index).then(r => r.json());
         if (data && data.ok) {
             renderFeedbackList();
             setTimeout(() => syncWithDrive(), 300);
@@ -992,7 +965,7 @@ async function approveFeedbackItem(index) {
 async function deleteFeedbackItem(index) {
     if (!confirm('למחוק את הפריט?')) return;
     try {
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=deleteFeedback&index=${index}`).then(r => r.json());
+        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=deleteFeedback&index=' + index).then(r => r.json());
         if (data.ok) {
             showToast('נמחק בהצלחה', 'success');
             renderFeedbackList();
@@ -1005,14 +978,13 @@ async function deleteFeedbackItem(index) {
 // ==============================================
 // הגדרות דומות (admin)
 // ==============================================
-
 async function loadSimilar() {
     const container = document.getElementById('similarList');
     if (!container) return;
     container.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען קבוצות...</div>';
     
     try {
-        const groups = await fetch(`${APPS_SCRIPT_URL}?action=getSimilar&_t=${Date.now()}`).then(r => r.json());
+        const groups = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=getSimilar&_t=' + Date.now()).then(r => r.json());
         if (!Array.isArray(groups) || groups.length === 0) {
             container.innerHTML = '<div class="empty-state"><div class="icon">✅</div><h3>לא נמצאו קבוצות דומות</h3></div>';
             return;
@@ -1041,7 +1013,7 @@ async function loadSimilar() {
 async function mergeGroup(idsEncoded) {
     try {
         const ids = JSON.parse(decodeURIComponent(idsEncoded));
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=merge&ids=${encodeURIComponent(JSON.stringify(ids))}`).then(r => r.json());
+        const data = await fetch('https://script.google.com/macros/s/AKfycby55S-WhnCmk6sF95VwWa4h77moNa1TRhraw2gattzxZ8sqoLTa3ewXduHsqBvKQROB/exec?action=merge&ids=' + encodeURIComponent(JSON.stringify(ids))).then(r => r.json());
         if (data && data.ok) {
             showToast('הקבוצה מוזגה בהצלחה!', 'success');
             loadSimilar();
@@ -1056,9 +1028,7 @@ async function mergeGroup(idsEncoded) {
 // ==============================================
 // אתחול הדף
 // ==============================================
-
 document.addEventListener('DOMContentLoaded', function() {
-    // טעינת הגדרות מקובץ JSON
     loadEntriesFromJSON();
     
     // בדיקת מצב מנהל
@@ -1069,26 +1039,25 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSyncBtn('connected');
     }
     
-    // הוספת מאזינים
+    // מאזינים
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             currentQuery = this.value.trim();
             const clearBtn = document.getElementById('clearSearch');
             if (clearBtn) clearBtn.style.display = currentQuery ? 'block' : 'none';
-            entriesPage = 0;
-            renderCardsPaged(currentQuery);
+            renderAllCards();
         });
     }
     
-    // מאזינים לסגירת מודלים
+    // סגירת מודלים
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', e => {
             if (e.target === overlay) closeModal();
         });
     });
     
-    // מאזין לגרירה לאזור הייבוא
+    // גרירה לייבוא
     const importZone = document.getElementById('importZone');
     if (importZone) {
         importZone.addEventListener('dragover', e => { e.preventDefault(); importZone.classList.add('drag-over'); });
@@ -1105,38 +1074,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // הצגת טאב ברירת מחדל
+    // טאב ברירת מחדל
     switchTab('search');
 });
-
-// exportUpdatedHTML - פונקציה גלובלית
-window.exportUpdatedHTML = exportUpdatedHTML;
-window.switchTab = switchTab;
-window.setFilter = setFilter;
-window.clearSearch = clearSearch;
-window.onSearchFieldChange = onSearchFieldChange;
-window.loadMoreEntries = loadMoreEntries;
-window.addEntry = addEntry;
-window.openEdit = openEdit;
-window.saveEdit = saveEdit;
-window.closeModal = closeModal;
-window.openDelete = function(id) {
-    const e = entries.find(x => x.id === id);
-    if (!e) return;
-    const deleteId = document.getElementById('delete-id');
-    const deletePreview = document.getElementById('delete-preview');
-    if (deleteId) deleteId.value = id;
-    if (deletePreview) deletePreview.textContent = `${e.definition} → ${e.solution}`;
-    const modal = document.getElementById('deleteModal');
-    if (modal) modal.classList.add('open');
-};
-window.confirmDelete = function() {
-    const id = document.getElementById('delete-id')?.value;
-    if (id) {
-        entries = entries.filter(x => x.id !== id);
-        saveDataLocal(entries);
-        closeModal();
-        renderCardsPaged(currentQuery);
-        showToast('🗑️ ההגדרה נמחקה', 'success');
-    }
-};
