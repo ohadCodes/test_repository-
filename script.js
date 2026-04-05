@@ -1069,7 +1069,7 @@ function renderCardsPaged(data) {
 // ──────────────────────────────────────────────
 // LOGOUT FUNCTION
 // ──────────────────────────────────────────────
-function logoutID() {
+function logout() {
   gAccessToken = null;
   gUserEmail = null;
   isOwner = false;
@@ -1078,6 +1078,11 @@ function logoutID() {
   updateSyncBtn('disconnected');
   updateOwnerUI();
   showToast('התנתקת מהחשבון', 'success');
+  
+  // רענון הדף כדי להחזיר למצב אורח
+  setTimeout(() => {
+      location.reload();
+  }, 500);
 }
 
   // ──────────────────────────────────────────────
