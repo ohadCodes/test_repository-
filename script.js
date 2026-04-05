@@ -1039,33 +1039,23 @@ function renderCardsPaged(data) {
     updateStats();
   }
 
-  function updateOwnerUI() {
-    // הצג/הסתר לשוניות מנהל
+ function updateOwnerUI() {
+    // כפתורי מנהל - מוצגים רק אם isOwner = true
     document.querySelectorAll('.owner-only').forEach(el => {
-      el.style.display = isOwner ? 'inline-block' : 'none';
+        el.style.display = isOwner ? 'inline-block' : 'none';
     });
-    // הצג/הסתר כפתורי עריכה בכרטיסיות
-    document.querySelectorAll('.card-actions').forEach(el => {
-      el.style.display = isOwner ? 'flex' : 'none';
-    });
-    // הצג/הסתר כפתור "הצעת הגדרה"
+    
+    // כפתורי משתמש רגיל - מוצגים רק אם isOwner = false
     const suggestBtn = document.getElementById('suggest-btn');
-    if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
     const feedbackBtn = document.getElementById('feedback-btn');
-    if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
-    // הצג טאב פידבק למנהל
-    const tabFeedback = document.getElementById('tab-feedback');
-    if (tabFeedback) tabFeedback.style.display = isOwner ? 'inline-block' : 'none';
-    const tabExport = document.getElementById('tab-export');
-    if (tabExport) tabExport.style.display = isOwner ? 'inline-block' : 'none';
-    const tabApprovals = document.getElementById('tab-approvals');
-    if (tabApprovals) tabApprovals.style.display = isOwner ? 'inline-block' : 'none';
-      // הצג/הסתר כפתור התנתקות
-      const logoutBtn = document.getElementById('logoutBtn');
-      if (logoutBtn) logoutBtn.style.display = isOwner ? 'inline-block' : 'none';
-    // עדכן כפילויות
-    updateFilterButtons();
-  }
+    
+    if (suggestBtn) {
+        suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
+    }
+    if (feedbackBtn) {
+        feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
+    }
+}
 // ──────────────────────────────────────────────
 // LOGOUT FUNCTION
 // ──────────────────────────────────────────────
