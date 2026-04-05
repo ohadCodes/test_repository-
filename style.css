@@ -724,3 +724,16 @@
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
       40% { transform: scale(1); opacity: 1; }
     }
+/* כאן תדביק את כל העיצוב הישן שהיה לך (בלי תגיות <style>) */
+
+/* אלו שורות הקסם שקובעות מצב לקוח כברירת מחדל */
+.admin-only, 
+#tab-add, 
+#tab-approvals, 
+#tab-export, 
+#tab-feedback {
+    display: none !important;
+}
+
+#login-btn { display: block; }
+#logout-btn { display: none; }
