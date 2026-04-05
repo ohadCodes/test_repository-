@@ -1670,10 +1670,6 @@ if (document.readyState === 'loading') {
 } else {
     loadEntriesFromJSON();
 }
-/* כפתורי מנהל - מוסתרים כברירת מחדל */
-.owner-only {
-    display: none !important;
-}
 
 /* כפתורי משתמש - מוצגים כברירת מחדל */
 #suggest-btn, #feedback-btn {
