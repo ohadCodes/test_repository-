@@ -14074,7 +14074,7 @@ function renderCardsPaged(data) {
 // ──────────────────────────────────────────────
 // LOGOUT FUNCTION
 // ──────────────────────────────────────────────
-function logout() {
+function logoutID() {
   gAccessToken = null;
   gUserEmail = null;
   isOwner = false;
@@ -14243,7 +14243,35 @@ function logout() {
         renderApprovalsList();
     }
 }
+window.logout = function() {
+    console.log("מתבצע התנתקות...");
 
+    // 1. ניקוי נתונים מה-LocalStorage (אם שמרת שם פרטי משתמש)
+    localStorage.removeItem('user_data');
+    localStorage.removeItem('is_admin');
+
+    // 2. איפוס משתנים גלובליים בקוד
+    window.currentUser = null;
+    window.isAdmin = false;
+
+    // 3. עדכון ה-UI (הסתרת כפתורי ניהול, שינוי כפתור כניסה/יציאה)
+    if (typeof updateOwnerUI === 'function') {
+        updateOwnerUI(null);
+    }
+
+    // 4. התנתקות מ-Google (אם מוגדר)
+    if (window.google && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+    }
+
+    // 5. העברה לטאב הראשי ורענון קל
+    if (typeof switchTab === 'function') {
+        switchTab('search');
+    }
+    
+    alert("התנתקת בהצלחה");
+    location.reload(); // רענון הדף כדי להחזיר אותו למצב נקי
+};
   async function rejectSuggestion(index, btn, keyEncoded) {
     try {
       if (btn) btn.disabled = true;
