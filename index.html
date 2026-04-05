@@ -13026,7 +13026,27 @@
   // DATA LAYER
   // ──────────────────────────────────────────────
   // הוספת הפונקציה שחסרה לדפדפן
-function updateFilterButtons() {
+// הגדרה גלובלית בראש הסקריפט כדי שה-HTML יזהה אותה תמיד
+window.switchTab = function(tabId) {
+    console.log("Switching to tab:", tabId); // לבדיקה ב-Console
+    
+    // 1. הסרת מצב פעיל מכל הטאבים
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+
+    // 2. הפעלת הטאב שנבחר
+    const activeBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    const activeView = document.getElementById(`view-${tabId}`);
+    if (activeView) activeView.classList.add('active');
+    
+    // מיקוד אוטומטי בשדה החיפוש אם עברנו לחיפוש
+    if (tabId === 'search') {
+        setTimeout(() => document.getElementById('searchInput')?.focus(), 100);
+    }
+};
+  function updateFilterButtons() {
     console.log("מעדכן כפתורי סינון...");
     // כאן אפשר להוסיף לוגיקה עתידית לעיצוב הכפתורים
 }
