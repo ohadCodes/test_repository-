@@ -699,6 +699,10 @@ function updateOwnerUI() {
     var feedbackBtn = document.getElementById('feedback-btn');
     if (suggestBtn) suggestBtn.style.display = isOwner ? 'none' : 'inline-block';
     if (feedbackBtn) feedbackBtn.style.display = isOwner ? 'none' : 'inline-block';
+    var ownerOnly = document.querySelectorAll('.owner-only');
+    for (var i = 0; i < ownerOnly.length; i++) {
+        ownerOnly[i].style.display = isOwner ? 'inline-block' : 'none';
+    }
 }
 
 function updateSyncBtn(state) {
