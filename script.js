@@ -1,42 +1,40 @@
 // ==============================================
-// גרסה פשוטה - טוענת הכל בפעם אחת
+// גרסת בסיס - רק טעינה והצגה
 // ==============================================
 
 let allEntries = [];
 
-// טעינת הנתונים כשהדף נטען
-async function loadData() {
-    console.log("מתחיל טעינת נתונים...");
-    
+// טעינת הגדרות
+async function loadEntries() {
     try {
         const response = await fetch('entries.json');
         const data = await response.json();
-        
         allEntries = data;
-        console.log("נטענו " + allEntries.length + " הגדרות");
         
-        // הצגת ההגדרות
-        displayEntries(allEntries);
+        console.log('נטענו', allEntries.length, 'הגדרות');
+        
+        // הצגה
+        renderCards(allEntries);
         
         // עדכון סטטוס
         const stats = document.getElementById('statsText');
-        if (stats) stats.innerText = allEntries.length + " הגדרות";
+        if (stats) stats.textContent = allEntries.length + ' הגדרות';
         
         // הסתרת מסך פתיחה
         const splash = document.getElementById('splash');
         if (splash) {
-            splash.style.opacity = '0';
+            splash.classList.add('hide');
             setTimeout(() => splash.remove(), 500);
         }
         
-    } catch(error) {
-        console.error("שגיאה:", error);
-        document.getElementById('cardsList').innerHTML = '<div class="empty-state">❌ שגיאה בטעינת הגדרות</div>';
+    } catch (err) {
+        console.error('שגיאה:', err);
+        document.getElementById('cardsList').innerHTML = '<div class="empty-state">⚠️ שגיאה בטעינת הגדרות</div>';
     }
 }
 
-// הצגת כל ההגדרות
-function displayEntries(entries) {
+// הצגת כרטיסים
+function renderCards(entries) {
     const container = document.getElementById('cardsList');
     if (!container) return;
     
@@ -46,80 +44,66 @@ function displayEntries(entries) {
     }
     
     let html = '';
-    
     for (let i = 0; i < entries.length; i++) {
         const e = entries[i];
         html += `
             <div class="card">
-                <div class="card-definition">${escapeHtml(e.definition)}</div>
-                <div class="card-solution">◈ ${escapeHtml(e.solution || 'ללא פתרון')}</div>
-                ${e.explanation ? `<div class="card-explanation">💡 ${escapeHtml(e.explanation)}</div>` : ''}
+                <div class="card-definition">${safeHtml(e.definition)}</div>
+                <div class="card-solution">◈ ${safeHtml(e.solution) || 'ללא פתרון'}</div>
+                ${e.explanation ? `<div class="card-explanation">💡 ${safeHtml(e.explanation)}</div>` : ''}
             </div>
         `;
     }
-    
     container.innerHTML = html;
 }
 
-// פונקציית עזר להצגת טקסט בטוח
-function escapeHtml(str) {
+// הגנה מפני XSS
+function safeHtml(str) {
     if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
 // חיפוש
-function searchEntries() {
-    const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
-    
-    if (!query) {
-        displayEntries(allEntries);
+function doSearch() {
+    const q = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+    if (!q) {
+        renderCards(allEntries);
         return;
     }
-    
     const filtered = allEntries.filter(e => 
-        e.definition.toLowerCase().includes(query) ||
-        (e.solution && e.solution.toLowerCase().includes(query))
+        e.definition.toLowerCase().includes(q) || 
+        (e.solution && e.solution.toLowerCase().includes(q))
     );
-    
-    displayEntries(filtered);
-    
-    const info = document.getElementById('resultsInfo');
-    if (info) info.innerText = `נמצאו ${filtered.length} תוצאות מתוך ${allEntries.length}`;
-}
-
-// איפוס חיפוש
-function clearSearch() {
-    const input = document.getElementById('searchInput');
-    if (input) input.value = '';
-    displayEntries(allEntries);
-    const info = document.getElementById('resultsInfo');
-    if (info) info.innerText = '';
+    renderCards(filtered);
 }
 
 // מעבר טאבים
-function switchTab(tabId) {
+function switchTab(tab) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    const view = document.getElementById('view-' + tabId);
-    if (view) view.classList.add('active');
+    const target = document.getElementById('view-' + tab);
+    if (target) target.classList.add('active');
     
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    const btn = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
+    const btn = document.querySelector(`[onclick="switchTab('${tab}')"]`);
     if (btn) btn.classList.add('active');
     
     const searchWrap = document.getElementById('searchWrap');
-    if (searchWrap) searchWrap.style.display = tabId === 'search' ? 'flex' : 'none';
+    if (searchWrap) searchWrap.style.display = tab === 'search' ? 'flex' : 'none';
 }
 
 // הפעלה
 document.addEventListener('DOMContentLoaded', function() {
-    loadData();
+    loadEntries();
     
-    // מאזין לחיפוש
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        searchInput.addEventListener('input', searchEntries);
+        searchInput.addEventListener('input', doSearch);
     }
     
-    // פתיחת טאב חיפוש כברירת מחדל
     switchTab('search');
 });
