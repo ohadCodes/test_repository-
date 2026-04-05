@@ -726,12 +726,8 @@
     }
 /* כאן תדביק את כל העיצוב הישן שהיה לך (בלי תגיות <style>) */
 
-/* אלו שורות הקסם שקובעות מצב לקוח כברירת מחדל */
-.admin-only, 
-#tab-add, 
-#tab-approvals, 
-#tab-export, 
-#tab-feedback {
+/* כברירת מחדל - כל הכפתורים למנהל מוסתרים */
+.owner-only {
     display: none !important;
 }
 
