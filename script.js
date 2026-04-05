@@ -39,15 +39,15 @@ function escapeHtml(str) {
 function highlightText(text, query) {
     if (!query || !text) return escapeHtml(text);
     const escaped = escapeHtml(text);
-    const escapedQ = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return escaped.replace(new RegExp(escapedQ, 'gi'), m => `<mark>${m}</mark>`);
+    const escapedQ = escapeHtml(query).replace(/[.*+?^}()|[\]\\]/g, '\\$&');
+    return escaped.replace(new RegExp(escapedQ, 'gi'), m => `<mark>m}</mark>`);
 }
 
 function showToast(msg, type = '') {
     const t = document.getElementById('toast');
     if (!t) return;
     t.textContent = msg;
-    t.className = `toast ${type} show`;
+    t.className = `toast type} show`;
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
@@ -60,7 +60,7 @@ function saveDataLocal(data) {
 function updateStats() {
     const badge = document.getElementById('statsText');
     if (badge && entries) {
-        badge.textContent = `${entries.length} הגדרות`;
+        badge.textContent = entries.length} הגדרות`;
     }
 }
 
@@ -82,7 +82,7 @@ async function loadEntriesFromJSON() {
         entries = [...data];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         
-        console.log(`✅ נטענו ${data.length} הגדרות מ-entries.json`);
+        console.log(`✅ נטענו data.length} הגדרות מ-entries.json`);
         updateStats();
         
         const splash = document.getElementById('splash');
@@ -98,7 +98,7 @@ async function loadEntriesFromJSON() {
         const savedData = localStorage.getItem(STORAGE_KEY);
         if (savedData) {
             entries = JSON.parse(savedData);
-            console.log(`⚠️ נטענו ${entries.length} הגדרות מ-LocalStorage (גיבוי)`);
+            console.log(`⚠️ נטענו entries.length} הגדרות מ-LocalStorage (גיבוי)`);
             renderCardsPaged('');
             return entries;
         }
@@ -142,7 +142,7 @@ function renderCardsPaged(query) {
     
     if (info) {
         info.style.display = 'block';
-        info.innerHTML = `מוצגים <span class="highlight">${pageFiltered.length}</span> הגדרות מתוך: <span class="highlight">${filtered.length}</span>`;
+        info.innerHTML = `מוצגים <span class="highlight">pageFiltered.length}</span> הגדרות מתוך: <span class="highlight">filtered.length}</span>`;
     }
     
     if (pageFiltered.length === 0) {
@@ -151,22 +151,22 @@ function renderCardsPaged(query) {
     }
     
     list.innerHTML = pageFiltered.map((e, idx) => `
-        <div class="card" style="animation-delay:${Math.min(idx * 0.03, 0.3)}s">
+        <div class="card" style="animation-delay:Math.min(idx * 0.03, 0.3)}s">
             <div class="card-header">
-                <div class="card-definition">${searchField === 'definition' ? highlightText(e.definition || '', query) : escapeHtml(e.definition)}</div>
+                <div class="card-definition">searchField === 'definition' ? highlightText(e.definition || '', query) : escapeHtml(e.definition)}</div>
                 <div class="card-meta">
-                    ${e.letters ? `<span class="tag tag-letters">${escapeHtml(e.letters)}</span>` : ''}
-                    ${e.type ? `<span class="tag tag-type">${escapeHtml(e.type)}</span>` : ''}
+                    e.letters ? `<span class="tag tag-letters">escapeHtml(e.letters)}</span>` : ''}
+                    e.type ? `<span class="tag tag-type">escapeHtml(e.type)}</span>` : ''}
                 </div>
             </div>
-            <div class="card-solution">◈ ${e.solution ? (searchField === 'solution' ? highlightText(e.solution, query) : escapeHtml(e.solution)) : '<span style="color:var(--danger);">ללא תשובה</span>'}</div>
-            ${e.explanation ? `<div class="card-divider"></div><div class="card-explanation">${searchField === 'explanation' ? highlightText(e.explanation, query) : escapeHtml(e.explanation)}</div>` : ''}
-            ${isOwner ? `<div class="card-actions"><button class="btn-icon" onclick="openEdit('${e.id}')">✏️ עריכה</button></div>` : ''}
+            <div class="card-solution">◈ e.solution ? (searchField === 'solution' ? highlightText(e.solution, query) : escapeHtml(e.solution)) : '<span style="color:var(--danger);">ללא תשובה</span>'}</div>
+            e.explanation ? `<div class="card-divider"></div><div class="card-explanation">searchField === 'explanation' ? highlightText(e.explanation, query) : escapeHtml(e.explanation)}</div>` : ''}
+            isOwner ? `<div class="card-actions"><button class="btn-icon" onclick="openEdit('e.id)">✏️ עריכה</button></div>` : ''}
         </div>
     `).join('');
     
     if (start + 50 < filtered.length) {
-        list.innerHTML += `<div style="text-align:center;margin:20px 0;"><button class="btn" onclick="loadMoreEntries()">טען עוד (${filtered.length - (start + 50)} נוספים)</button></div>`;
+        list.innerHTML += `<div style="text-align:center;margin:20px 0;"><button class="btn" onclick="loadMoreEntries()">טען עוד (filtered.length - (start + 50)} נוספים)</button></div>`;
     }
 }
 
@@ -205,7 +205,7 @@ function clearSearch() {
 function setFilter(filter) {
     currentFilter = filter;
     document.querySelectorAll('.filter-btn[id^="filter"]').forEach(b => b.classList.remove('active'));
-    const activeBtn = document.getElementById(`filter-${filter}`);
+    const activeBtn = document.getElementById(`filter-filter);
     if (activeBtn) activeBtn.classList.add('active');
     entriesPage = 0;
     renderCardsPaged(currentQuery);
@@ -219,10 +219,10 @@ function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
     
-    const selectedBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+    const selectedBtn = document.querySelector(`.tab-btn[onclick*="tabId}"]`);
     if (selectedBtn) selectedBtn.classList.add('active');
     
-    const selectedView = document.getElementById(`view-${tabId}`);
+    const selectedView = document.getElementById(`view-tabId);
     if (selectedView) selectedView.classList.add('active');
     
     const searchWrap = document.getElementById('searchWrap');
@@ -352,11 +352,11 @@ function renderDeleteList() {
     }
     
     list.innerHTML = filtered.map(e => `
-        <div class="delete-item ${selectedForDelete.has(e.id) ? 'selected' : ''}" onclick="toggleDeleteSelect('${e.id}', this)">
-            <input type="checkbox" ${selectedForDelete.has(e.id) ? 'checked' : ''} onclick="event.stopPropagation();toggleDeleteSelect('${e.id}', this.closest('.delete-item'))" />
+        <div class="delete-item selectedForDelete.has(e.id) ? 'selected' : ''}" onclick="toggleDeleteSelect('e.id, this)">
+            <input type="checkbox" selectedForDelete.has(e.id) ? 'checked' : ''} onclick="event.stopPropagation();toggleDeleteSelect('e.id, this.closest('.delete-item'))" />
             <div class="delete-item-text">
-                <div class="delete-item-def">${escapeHtml(e.definition)}</div>
-                ${e.solution ? `<div class="delete-item-sol">◈ ${escapeHtml(e.solution)}</div>` : ''}
+                <div class="delete-item-def">escapeHtml(e.definition)}</div>
+                e.solution ? `<div class="delete-item-sol">◈ escapeHtml(e.solution)}</div>` : ''}
             </div>
         </div>
     `).join('');
@@ -406,7 +406,7 @@ function confirmDeleteSelected() {
     saveDataLocal(entries);
     renderDeleteList();
     renderCardsPaged(currentQuery);
-    showToast(`🗑️ נמחקו ${count} הגדרות`, 'success');
+    showToast(`🗑️ נמחקו count} הגדרות`, 'success');
 }
 
 function openDelete(id) {
@@ -415,7 +415,7 @@ function openDelete(id) {
     const deleteId = document.getElementById('delete-id');
     const deletePreview = document.getElementById('delete-preview');
     if (deleteId) deleteId.value = id;
-    if (deletePreview) deletePreview.textContent = `${e.definition} → ${e.solution}`;
+    if (deletePreview) deletePreview.textContent = e.definition} → e.solution;
     const modal = document.getElementById('deleteModal');
     if (modal) modal.classList.add('open');
 }
@@ -441,21 +441,21 @@ function exportEntries() {
         return;
     }
     const lines = entries.map(e => {
-        let def = `ההגדרה: ${e.definition}`;
-        if (e.letters) def += ` (${e.letters})`;
-        if (e.type) def += ` [${e.type}]`;
-        const parts = [def, `הפתרון: ${e.solution || ''}`];
-        if (e.explanation) parts.push(`הסבר: ${e.explanation}`);
+        let def = `ההגדרה: e.definition;
+        if (e.letters) def += ` (e.letters})`;
+        if (e.type) def += ` [e.type}]`;
+        const parts = [def, `הפתרון: e.solution || ''];
+        if (e.explanation) parts.push(`הסבר: e.explanation);
         return parts.join(' | ');
     });
     const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `definitions_${new Date().toLocaleDateString('he-IL').replace(/\//g, '-')}.txt`;
+    a.download = `definitions_new Date().toLocaleDateString('he-IL').replace(/\//g, '-')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`✅ יוצאו ${entries.length} הגדרות`, 'success');
+    showToast(`✅ יוצאו entries.length} הגדרות`, 'success');
 }
 
 function handleFileImport(event) {
@@ -560,16 +560,16 @@ function processImportText(text) {
     saveDataLocal(entries);
     
     const parts = [];
-    if (added > 0) parts.push(`נוספו ${added} חדשות`);
-    if (updated > 0) parts.push(`עודכנו ${updated} פתרונות/הסברים`);
-    if (skipped > 0) parts.push(`${skipped} כפילויות דולגו`);
-    if (failed > 0) parts.push(`${failed} שורות לא זוהו`);
+    if (added > 0) parts.push(`נוספו added} חדשות`);
+    if (updated > 0) parts.push(`עודכנו updated} פתרונות/הסברים`);
+    if (skipped > 0) parts.push(skipped} כפילויות דולגו`);
+    if (failed > 0) parts.push(failed} שורות לא זוהו`);
     
     if (added > 0 || updated > 0) {
-        showToast(`✅ ${parts.join(' · ')}`, 'success');
+        showToast(`✅ parts.join(' · '), 'success');
         switchTab('search');
     } else if (skipped > 0) {
-        showToast(`⚠️ ${parts.join(' · ')}`, '');
+        showToast(`⚠️ parts.join(' · '), '');
     } else {
         showToast('לא זוהו הגדרות — בדוק את הפורמט', 'error');
     }
@@ -606,23 +606,23 @@ function checkDuplicates() {
     if (!container) return;
     
     if (groups.length === 0) {
-        container.innerHTML = `<div class="empty-state"><div class="icon">✅</div><h3>אין כפילויות!</h3><p>כל ${entries.length} ההגדרות ייחודיות</p></div>`;
+        container.innerHTML = `<div class="empty-state"><div class="icon">✅</div><h3>אין כפילויות!</h3><p>כל entries.length} ההגדרות ייחודיות</p></div>`;
         return;
     }
     
-    let html = `<div class="results-info">נמצאו <span class="highlight">${groups.length}</span> קבוצות כפילויות
+    let html = `<div class="results-info">נמצאו <span class="highlight">groups.length}</span> קבוצות כפילויות
         <button class="btn-icon danger" onclick="deleteAllDupes()">🗑️ מחק כפילויות אוטומטית</button>
     </div>`;
     
     for (const group of groups) {
         html += `<div class="card" style="border-color:var(--danger);margin-bottom:14px;">
-            <div style="font-size:0.75rem;color:var(--danger);font-weight:700;margin-bottom:10px;">⚠️ ${group.length} כניסות זהות</div>`;
+            <div style="font-size:0.75rem;color:var(--danger);font-weight:700;margin-bottom:10px;">⚠️ group.length} כניסות זהות</div>`;
         group.forEach((e, idx) => {
             html += `<div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:8px;">
-                <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">${escapeHtml(e.definition)}</div>
-                <div style="font-size:0.9rem;color:var(--success);">◈ ${escapeHtml(e.solution)}</div>
+                <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">escapeHtml(e.definition)}</div>
+                <div style="font-size:0.9rem;color:var(--success);">◈ escapeHtml(e.solution)}</div>
                 <div style="margin-top:8px;">
-                    ${idx > 0 ? `<button class="btn-icon danger" onclick="deleteDupe('${e.id}')">🗑️ מחק עותק זה</button>` : `<span style="font-size:0.75rem;color:var(--text-muted);">← ישמר</span>`}
+                    idx > 0 ? `<button class="btn-icon danger" onclick="deleteDupe('e.id)">🗑️ מחק עותק זה</button>` : `<span style="font-size:0.75rem;color:var(--text-muted);">← ישמר</span>`}
                 </div>
             </div>`;
         });
@@ -653,7 +653,7 @@ function deleteAllDupes() {
     const removed = entries.length - toKeep.length;
     entries = toKeep;
     saveDataLocal(entries);
-    showToast(`✅ נמחקו ${removed} כפילויות`, 'success');
+    showToast(`✅ נמחקו removed} כפילויות`, 'success');
     checkDuplicates();
     renderCardsPaged(currentQuery);
 }
@@ -692,7 +692,7 @@ async function submitSuggestion() {
     showToast('⏳ שולח הצעה...', '');
     
     try {
-        const url = `${APPS_SCRIPT_URL}?action=submitSuggestion&def=${encodeURIComponent(definition)}&sol=${encodeURIComponent(solution || '')}&letters=${encodeURIComponent(letters || '')}&exp=${encodeURIComponent(explanation || '')}`;
+        const url = APPS_SCRIPT_URL}?action=submitSuggestion&def=encodeURIComponent(definition)}&sol=encodeURIComponent(solution || '')}&letters=encodeURIComponent(letters || '')}&exp=encodeURIComponent(explanation || '');
         const res = await fetch(url);
         const data = await res.json();
         if (data.ok) showToast('✅ ההצעה נשלחה, תודה!', 'success');
@@ -737,7 +737,7 @@ async function submitFeedback() {
     closeFeedbackModal();
     showToast('שולח פידבק...', '');
     try {
-        const url = `${APPS_SCRIPT_URL}?action=submitFeedback&type=${encodeURIComponent(feedbackType)}&text=${encodeURIComponent(text)}`;
+        const url = APPS_SCRIPT_URL}?action=submitFeedback&type=encodeURIComponent(feedbackType)}&text=encodeURIComponent(text);
         const res = await fetch(url);
         const data = await res.json();
         if (data.ok) showToast('✅ הפידבק התקבל, תודה!', 'success');
@@ -798,7 +798,7 @@ function signInGoogle() {
             localStorage.setItem('g_access_token', gAccessToken);
             try {
                 const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { 'Authorization': `Bearer ${gAccessToken}` }
+                    headers: { 'Authorization': `Bearer gAccessToken }
                 });
                 const u = await info.json();
                 gUserEmail = u.email;
@@ -869,7 +869,7 @@ async function syncWithDrive() {
     if (!isOwner) return;
     updateSyncBtn('syncing');
     try {
-        const url = `${APPS_SCRIPT_URL}?action=getEntries&_t=${Date.now()}`;
+        const url = APPS_SCRIPT_URL}?action=getEntries&_t=Date.now();
         const res = await fetch(url);
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -997,7 +997,7 @@ async function approveSuggestion(id) {
 
 async function rejectSuggestion(id) {
     try {
-        await fetch(`${APPS_SCRIPT_URL}?action=deleteSuggestion&id=${id}`);
+        await fetch(APPS_SCRIPT_URL + '?action=deleteSuggestion&id=' + id);
         await renderApprovalsList();
         showToast('❌ ההצעה נדחתה', 'success');
     } catch(e) {
@@ -1024,7 +1024,7 @@ async function renderFeedbackList() {
     if (!bugsEl || !improvEl) return;
     
     try {
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=getFeedback&_t=${Date.now()}`).then(r => r.json());
+        const data = await fetch(APPS_SCRIPT_URL + '?action=getFeedback&_t=' + Date.now()).then(r => r.json());
         const bugs = [];
         const improvements = [];
         
@@ -1036,10 +1036,10 @@ async function renderFeedbackList() {
         
         const renderCard = (item) => `
             <div class="card" style="margin-bottom:8px; padding:12px;">
-                <div style="font-size:0.85rem;margin-bottom:8px;">${escapeHtml(item.text)}</div>
+                <div style="font-size:0.85rem;margin-bottom:8px;">escapeHtml(item.text)}</div>
                 <div style="display:flex; gap:8px; justify-content: flex-end;">
-                    ${item.type === 'improvement' ? `<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="approveFeedbackItem(${item._idx})">אישור</button>` : ''}
-                    <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(244,63,94,0.1); color:var(--danger);" onclick="deleteFeedbackItem(${item._idx})">מחיקה</button>
+                    item.type === 'improvement' ? `<button class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem;" onclick="approveFeedbackItem(item._idx})">אישור</button>` : ''}
+                    <button class="btn" style="padding:4px 8px; font-size:0.75rem; background:rgba(244,63,94,0.1); color:var(--danger);" onclick="deleteFeedbackItem(item._idx})">מחיקה</button>
                 </div>
             </div>
         `;
@@ -1055,7 +1055,7 @@ async function renderFeedbackList() {
 async function approveFeedbackItem(index) {
     try {
         // שליפת הפריט מהשרת לפי אינדקס
-        const res = await fetch(`${APPS_SCRIPT_URL}?action=getFeedbackItem&index=${index}`);
+        const res = await fetch(APPS_SCRIPT_URL}?action=getFeedbackItem&index=index);
         const item = await res.json();
         if (item && item.text) {
             const entry = parseEntryLine(item.text);
@@ -1070,7 +1070,7 @@ async function approveFeedbackItem(index) {
             }
         }
         // מחיקת הפריט מהשרת
-        await fetch(`${APPS_SCRIPT_URL}?action=deleteFeedback&index=${index}`);
+        await fetch(APPS_SCRIPT_URL}?action=deleteFeedback&index=index);
         renderFeedbackList();
     } catch(e) {
         showToast('שגיאה באישור הפידבק', 'error');
@@ -1081,7 +1081,7 @@ async function pushToCloud() {
     updateSyncBtn('syncing');
     try {
         const payload = JSON.stringify(entries);
-        const res = await fetch(`${APPS_SCRIPT_URL}?action=updateEntries`, {
+        const res = await fetch(APPS_SCRIPT_URL}?action=updateEntries`, {
             method: 'POST',
             body: payload,
             headers: { 'Content-Type': 'application/json' }
@@ -1101,7 +1101,7 @@ async function pushToCloud() {
 async function deleteFeedbackItem(index) {
     if (!confirm('למחוק את הפריט?')) return;
     try {
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=deleteFeedback&index=${index}`).then(r => r.json());
+        const data = await fetch(APPS_SCRIPT_URL}?action=deleteFeedback&index=index).then(r => r.json());
         if (data.ok) {
             showToast('נמחק בהצלחה', 'success');
             renderFeedbackList();
@@ -1121,7 +1121,7 @@ async function loadSimilar() {
     container.innerHTML = '<div style="color:var(--text-muted);padding:20px;text-align:center;">⏳ טוען קבוצות...</div>';
     
     try {
-        const groups = await fetch(`${APPS_SCRIPT_URL}?action=getSimilar&_t=${Date.now()}`).then(r => r.json());
+        const groups = await fetch(APPS_SCRIPT_URL}?action=getSimilar&_t=Date.now()).then(r => r.json());
         if (!Array.isArray(groups) || groups.length === 0) {
             container.innerHTML = '<div class="empty-state"><div class="icon">✅</div><h3>לא נמצאו קבוצות דומות</h3></div>';
             return;
@@ -1131,14 +1131,14 @@ async function loadSimilar() {
         groups.forEach((group, idx) => {
             const div = document.createElement('div');
             div.className = 'card';
-            let html = `<h4 style="margin-bottom:10px;">קבוצה ${idx + 1} - ${group.length} הגדרות</h4><ol style="padding-right:18px;">`;
+            let html = `<h4 style="margin-bottom:10px;">קבוצה idx + 1} - group.length} הגדרות</h4><ol style="padding-right:18px;">`;
             group.forEach(g => {
-                html += `<li style="margin-bottom:6px;">${escapeHtml(g.definition)} ${escapeHtml(g.letters || '')}</li>`;
+                html += `<li style="margin-bottom:6px;">escapeHtml(g.definition)} escapeHtml(g.letters || '')}</li>`;
             });
             html += '</ol>';
             const ids = group.map(g => g.id);
             const idsEncoded = encodeURIComponent(JSON.stringify(ids));
-            html += `<button class="btn btn-primary" onclick="mergeGroup('${idsEncoded}')">מזג קבוצה</button>`;
+            html += `<button class="btn btn-primary" onclick="mergeGroup('idsEncoded)">מזג קבוצה</button>`;
             div.innerHTML = html;
             container.appendChild(div);
         });
@@ -1150,7 +1150,7 @@ async function loadSimilar() {
 async function mergeGroup(idsEncoded) {
     try {
         const ids = JSON.parse(decodeURIComponent(idsEncoded));
-        const data = await fetch(`${APPS_SCRIPT_URL}?action=merge&ids=${encodeURIComponent(JSON.stringify(ids))}`).then(r => r.json());
+        const data = await fetch(APPS_SCRIPT_URL}?action=merge&ids=encodeURIComponent(JSON.stringify(ids))).then(r => r.json());
         if (data && data.ok) {
             showToast('הקבוצה מוזגה בהצלחה!', 'success');
             loadSimilar();
