@@ -13134,7 +13134,18 @@ function updateFilterButtons() {
       badge.style.display = 'none';
     }
   }
+function switchTab(tabId) {
+    // הסרת מחלקת active מכל הכפתורים והתצוגות
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
 
+    // הוספת active לטאב הנבחר
+    const selectedBtn = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
+    if (selectedBtn) selectedBtn.classList.add('active');
+
+    const selectedView = document.getElementById(`view-${tabId}`);
+    if (selectedView) selectedView.classList.add('active');
+}
  function switchTab(tab) {
   // עדכון כפתורים: מחפש את הכפתור שה-onclick שלו מכיל את שם הטאב
   document.querySelectorAll('.tab-btn').forEach(btn => {
