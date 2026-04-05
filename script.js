@@ -820,10 +820,12 @@ async function pushToCloud() {
     if (!isOwner) return;
     updateSyncBtn('syncing');
     try {
-        // המרת מערך ההגדרות למחרוזת מקודדת
-        const dataEncoded = encodeURIComponent(JSON.stringify(entries));
-        const url = APPS_SCRIPT_URL + '?action=updateEntries&data=' + dataEncoded;
-        const res = await fetch(url);
+        const payload = JSON.stringify(entries);
+        const res = await fetch(APPS_SCRIPT_URL + '?action=updateEntries', {
+            method: 'POST',
+            body: payload,
+            headers: { 'Content-Type': 'application/json' }
+        });
         const data = await res.json();
         if (data.ok) {
             showToast('✅ הנתונים הועלו לענן', 'success');
