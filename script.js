@@ -1679,3 +1679,7 @@ if (document.readyState === 'loading') {
 #suggest-btn, #feedback-btn {
     display: inline-block !important;
 }
+// הפעלת עדכון ממשק המשתמש
+if (typeof updateOwnerUI === 'function') {
+    updateOwnerUI();
+}
