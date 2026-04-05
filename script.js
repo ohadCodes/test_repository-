@@ -1597,3 +1597,63 @@ window.logout = function() {
         loadEntriesFromFile();
     });
   }
+// ==============================================
+// טעינת הגדרות מקובץ JSON - הפונקציה החשובה!
+// ==============================================
+async function loadEntriesFromJSON() {
+    try {
+        const response = await fetch('entries.json');
+        if (!response.ok) {
+            throw new Error('לא ניתן לטעון את קובץ ההגדרות');
+        }
+        const data = await response.json();
+        
+        // עדכון המערך הגלובלי
+        window.allEntries = data;
+        window.entries = data;
+        
+        console.log(`✅ נטענו ${data.length} הגדרות מ-entries.json`);
+        
+        // עדכון הסטטיסטיקה
+        const statsBadge = document.getElementById('statsText');
+        if (statsBadge) {
+            statsBadge.textContent = data.length + ' הגדרות';
+        }
+        
+        // רינדור מחדש של הכרטיסים
+        if (typeof renderCardsPaged === 'function') {
+            renderCardsPaged('');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('❌ שגיאה בטעינת הגדרות:', error);
+        const cardsList = document.getElementById('cardsList');
+        if (cardsList) {
+            cardsList.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">⚠️</div>
+                    <h3>שגיאה בטעינת הגדרות</h3>
+                    <p>לא ניתן לטעון את קובץ ההגדרות. ודא שהקובץ entries.json נמצא בתיקייה.</p>
+                    <button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;">🔄 נסה שוב</button>
+                </div>`;
+        }
+        return [];
+    }
+}
+
+// הפעלת טעינת ההגדרות כשהדף נטען
+document.addEventListener('DOMContentLoaded', function() {
+    loadEntriesFromJSON();
+});
+
+// אם יש כבר קוד ב-window.onload, נוסיף אליו
+if (typeof window.onload === 'function') {
+    const oldOnload = window.onload;
+    window.onload = function() {
+        oldOnload();
+        loadEntriesFromJSON();
+    };
+} else {
+    window.onload = loadEntriesFromJSON;
+}
