@@ -858,7 +858,7 @@ function logout() {
         .catch(err => {
             console.error('שגיאה בטעינה מחדש:', err);
             location.reload(); // רענון מלא כמוצא אחרון
-        }1000);
+        },1000);
 }
 function handleSyncClick() {
     if (!gAccessToken) signInGoogle();
